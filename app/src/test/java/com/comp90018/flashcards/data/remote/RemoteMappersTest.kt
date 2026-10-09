@@ -2,6 +2,7 @@ package com.comp90018.flashcards.data.remote
 
 import com.google.firebase.Timestamp
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.Instant
@@ -59,5 +60,57 @@ class RemoteMappersTest {
         assertEquals(2, card.position)
         assertEquals("content://front", card.frontImageUri)
         assertNull(card.backImageUri)
+    }
+
+    @Test
+    fun `deck create map stores catalogue fields only`() {
+        val updatedAt = Instant.parse("2026-10-09T00:00:00Z")
+        val map =
+            RemoteDeck(
+                deckId = "deck-1",
+                name = "Biology",
+                ownerId = "uid-1",
+                visibility = DeckVisibility.PRIVATE,
+                updatedAt = updatedAt,
+                cardCount = 2,
+            ).toFirestoreMap()
+
+        assertEquals(setOf("name", "ownerId", "visibility", "updatedAt", "cardCount"), map.keys)
+        assertEquals("Biology", map["name"])
+        assertEquals("private", map["visibility"])
+        assertEquals(2, map["cardCount"])
+        assertEquals(updatedAt.epochSecond, (map["updatedAt"] as Timestamp).seconds)
+    }
+
+    @Test
+    fun `deck update map leaves visibility and owner unchanged`() {
+        val map =
+            RemoteDeck(
+                deckId = "deck-1",
+                name = "Biology",
+                ownerId = "uid-1",
+                visibility = DeckVisibility.PRIVATE,
+                updatedAt = Instant.parse("2026-10-09T00:00:00Z"),
+                cardCount = 2,
+            ).toContentUpdateMap()
+
+        assertEquals(setOf("name", "updatedAt", "cardCount"), map.keys)
+        assertFalse(map.containsKey("visibility"))
+        assertFalse(map.containsKey("ownerId"))
+    }
+
+    @Test
+    fun `card write map stores prompt fields only`() {
+        val map =
+            RemoteCard(
+                cardId = "card-1",
+                deckId = "deck-1",
+                front = "Q",
+                back = "A",
+                position = 1,
+                frontImageUri = "content://front",
+            ).toFirestoreMap()
+
+        assertEquals(setOf("front", "back", "position", "frontImageUri"), map.keys)
     }
 }

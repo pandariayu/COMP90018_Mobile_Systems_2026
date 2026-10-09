@@ -7,6 +7,7 @@ import com.comp90018.flashcards.data.local.entity.CardEntity
 import com.comp90018.flashcards.data.local.entity.CardFsrsStateEntity
 import com.comp90018.flashcards.data.local.entity.DeckEntity
 import com.comp90018.flashcards.data.local.entity.ReviewLogEntity
+import com.comp90018.flashcards.data.sync.DeckSyncCoordinator
 import com.comp90018.flashcards.domain.fsrs.CardState
 import com.comp90018.flashcards.domain.fsrs.FsrsCard
 import com.comp90018.flashcards.domain.fsrs.FsrsScheduler
@@ -30,14 +31,24 @@ class CardRepositoryImpl
         private val reviewDao: ReviewDao,
         private val scheduler: FsrsScheduler,
         private val clock: Clock,
+        private val deckSync: DeckSyncCoordinator,
     ) : CardRepository {
         override fun getAllDecks(ownerId: String): Flow<List<DeckEntity>> = deckDao.getAllDecks(ownerId)
 
-        override suspend fun insertDeck(deck: DeckEntity) = deckDao.insertDeck(deck)
+        override suspend fun insertDeck(deck: DeckEntity) {
+            deckDao.insertDeck(deck)
+            deckSync.deckChanged(deck.deckId, deck.ownerId)
+        }
 
-        override suspend fun updateDeck(deck: DeckEntity) = deckDao.updateDeck(deck)
+        override suspend fun updateDeck(deck: DeckEntity) {
+            deckDao.updateDeck(deck)
+            deckSync.deckChanged(deck.deckId, deck.ownerId)
+        }
 
-        override suspend fun deleteDeck(deck: DeckEntity) = deckDao.deleteDeck(deck)
+        override suspend fun deleteDeck(deck: DeckEntity) {
+            deckDao.deleteDeck(deck)
+            deckSync.deckDeleted(deck.deckId, deck.ownerId)
+        }
 
         override suspend fun getDeckById(deckId: String): DeckEntity? = deckDao.getDeckById(deckId)
 
@@ -70,11 +81,25 @@ class CardRepositoryImpl
 
         override suspend fun getCardById(cardId: String): CardEntity? = cardDao.getCardById(cardId)
 
-        override suspend fun insertCard(card: CardEntity) = cardDao.insertCard(card)
+        override suspend fun insertCard(card: CardEntity) {
+            cardDao.insertCard(card)
+            markDeckChanged(card.deckId)
+        }
 
-        override suspend fun updateCard(card: CardEntity) = cardDao.updateCard(card)
+        override suspend fun updateCard(card: CardEntity) {
+            cardDao.updateCard(card)
+            markDeckChanged(card.deckId)
+        }
 
-        override suspend fun deleteCard(card: CardEntity) = cardDao.deleteCardAndReviews(card)
+        override suspend fun deleteCard(card: CardEntity) {
+            cardDao.deleteCardAndReviews(card)
+            markDeckChanged(card.deckId)
+        }
+
+        private suspend fun markDeckChanged(deckId: String) {
+            val ownerId = deckDao.getDeckById(deckId)?.ownerId ?: return
+            deckSync.deckChanged(deckId, ownerId)
+        }
 
         override suspend fun reviewCard(
             userId: String,

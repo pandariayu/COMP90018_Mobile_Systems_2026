@@ -22,7 +22,7 @@ Authentication is Firebase Auth. Users can continue with Google, or register and
 
 ## Cloud decks (Firestore)
 
-Shared deck storage uses **Cloud Firestore** in the same Firebase project as Auth (`com-comp90018-flashcards`). Local Room remains the source of truth on device; async sync and upload/download UI are separate Stage 2 issues.
+Shared deck storage uses **Cloud Firestore** in the same Firebase project as Auth (`com-comp90018-flashcards`). Local Room remains the source of truth on device. Deck and card edits are pushed in the background when the device is online. Upload / download UI (publish and save-a-copy) is still a separate Stage 2 issue.
 
 Schema, security rules, and provisioning steps: [docs/cloud-deck-schema.md](docs/cloud-deck-schema.md).
 
@@ -34,7 +34,7 @@ firebase use com-comp90018-flashcards
 firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-Rules and indexes live in `firestore.rules` and `firestore.indexes.json`. The Android client depends on `firebase-firestore` and exposes a thin `DeckRemoteDataSource` under `data/remote` (no sync loop yet).
+Rules and indexes live in `firestore.rules` and `firestore.indexes.json`. The Android client depends on `firebase-firestore`. `DeckSyncCoordinator` pushes local deck changes when the network is available. Study progress stays in Room.
 
 ## Social API and friend sharing
 

@@ -10,10 +10,10 @@ This document is the missing write-up for [SPIKE #17](https://github.com/hboyket
 
 | In scope (#18) | Out of scope (later issues) |
 |---|---|
-| Firestore project wiring, rules, indexes | Async local ↔ cloud sync (#19) |
-| Deck + card document shape | Upload / download UI (#20) |
-| Thin Android remote data source | Friends / publish endpoints (#22–#23) |
-| Visibility `private` / `public` | Favourites list |
+| Firestore project wiring, rules, indexes | Upload / download UI (#20) |
+| Deck + card document shape | Friends / publish endpoints (#22–#23) |
+| Thin Android remote data source | Favourites list |
+| Visibility `private` / `public` | Per-user study progress on shared decks |
 
 Per-user spaced-repetition progress stays in **local Room** until a later sync design. Do not store SM-2 / FSRS fields on shared deck documents.
 
@@ -90,8 +90,18 @@ firebase deploy --only firestore:rules,firestore:indexes
 
 4. Ensure `app/google-services.json` is present (gitignored) so the Android app can reach the same project.
 
+## Sync (#19)
+
+Local Room stays the source of truth. Deck and card edits are stored in a local outbox and pushed to Firestore when the device has a network connection. Saving a deck does not wait on the network.
+
+- Study progress (FSRS) is not uploaded.
+- Cloud document ids stay equal to the local UUIDs.
+- The first push creates the deck as `private`. Later pushes update `name`, cards, `cardCount`, and `updatedAt` only, so a published deck stays public (#20).
+- Deleting a local deck deletes that cloud deck.
+- Decks already on the device are enqueued once per signed-in user.
+
 ## Android client
 
 - Dependency: `com.google.firebase:firebase-firestore` (Firebase BOM already in the app).
-- Models / stub: `com.comp90018.flashcards.data.remote` — CRUD helpers only; no offline sync loop yet.
+- Models: `com.comp90018.flashcards.data.remote`. Background push: `com.comp90018.flashcards.data.sync`.
 - Existing `getDeck(deckId)` and `listCards(deckId)` can read explicitly shared private decks after a grant is issued through the API. Friends/sharing UI, shared-deck discovery, and HTTP integration remain to be connected.
