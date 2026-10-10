@@ -37,7 +37,7 @@ fun FlashcardComponent(
         modifier =
             modifier
                 .graphicsLayer {
-                    rotationY = rotation
+                    rotationX = rotation
                     cameraDistance = 12f * density
                 },
     ) {
@@ -64,7 +64,7 @@ fun FlashcardComponent(
                         Modifier
                             .fillMaxSize()
                             .graphicsLayer {
-                                rotationY = 180f
+                                rotationX = 180f
                             },
                 )
             }

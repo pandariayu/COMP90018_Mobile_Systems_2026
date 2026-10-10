@@ -36,7 +36,6 @@ fun DeckDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary),
                 title = { Text(deck?.name ?: "Deck Details") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
