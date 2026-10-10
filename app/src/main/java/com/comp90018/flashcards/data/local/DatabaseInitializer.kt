@@ -11,7 +11,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Inserts a sample deck the first time a signed-in user has no decks.
+ * Inserts sample decks the first time a signed-in user has no decks.
  */
 @Singleton
 class DatabaseInitializer
@@ -27,24 +27,60 @@ class DatabaseInitializer
                 if (deckDao.countDecksForOwner(ownerId) > 0) {
                     return
                 }
-                val deckId = UUID.randomUUID().toString()
-                deckDao.insertDeck(DeckEntity(deckId = deckId, name = "Sample Deck", ownerId = ownerId))
-                val cards =
+
+                // 1. Sample Deck
+                val sampleDeckId = UUID.randomUUID().toString()
+                deckDao.insertDeck(
+                    DeckEntity(
+                        deckId = sampleDeckId,
+                        name = "Sample Deck",
+                        description = "A sample deck to get you started with flashcards.",
+                        ownerId = ownerId,
+                    ),
+                )
+                val sampleCards =
                     listOf(
                         CardEntity(
                             cardId = UUID.randomUUID().toString(),
-                            deckId = deckId,
+                            deckId = sampleDeckId,
                             front = "What is Android?",
                             back = "A mobile operating system.",
                         ),
                         CardEntity(
                             cardId = UUID.randomUUID().toString(),
-                            deckId = deckId,
+                            deckId = sampleDeckId,
                             front = "What is Kotlin?",
                             back = "A modern programming language.",
                         ),
                     )
-                cards.forEach { card -> cardDao.insertCard(card) }
+                sampleCards.forEach { card -> cardDao.insertCard(card) }
+
+                // 2. Alphabet Deck (26 cards)
+                val alphabetDeckId = UUID.randomUUID().toString()
+                deckDao.insertDeck(
+                    DeckEntity(
+                        deckId = alphabetDeckId,
+                        name = "Alphabet",
+                        description = "26 letters of the alphabet",
+                        ownerId = ownerId,
+                    ),
+                )
+                val ordinals = listOf(
+                    "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th",
+                    "11th", "12th", "13th", "14th", "15th", "16th", "17th", "18th", "19th", "20th",
+                    "21st", "22nd", "23rd", "24th", "25th", "26th",
+                )
+                val alphabetCards =
+                    (1..26).map { i ->
+                        val letter = ('A' + (i - 1)).toString()
+                        CardEntity(
+                            cardId = UUID.randomUUID().toString(),
+                            deckId = alphabetDeckId,
+                            front = "${ordinals[i - 1]} letter of the alphabet",
+                            back = letter,
+                        )
+                    }
+                alphabetCards.forEach { card -> cardDao.insertCard(card) }
             }
         }
     }

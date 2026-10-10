@@ -37,7 +37,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.comp90018.flashcards.ui.deck.BUTTON_HEIGHT
 import com.comp90018.flashcards.ui.deck.DeckSummaryViewModel
 
 private const val MAX_DIGITS = 3
@@ -127,10 +126,9 @@ private fun TimerOptionButton(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        // The description is measured first, then the button takes up to BUTTON_HEIGHT of what is left.
         Button(
             onClick = onClick,
-            modifier = Modifier.weight(1f, fill = false).fillMaxWidth().height(BUTTON_HEIGHT),
+            modifier = Modifier.weight(1f, fill = false).fillMaxWidth().height(72.dp),
         ) {
             Text(option.title, style = MaterialTheme.typography.titleLarge)
         }

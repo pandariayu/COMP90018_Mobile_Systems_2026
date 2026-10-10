@@ -109,18 +109,17 @@ private fun PlayModeButton(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        // The description is measured first, then the button takes up to BUTTON_HEIGHT of what is left.
         Button(
             onClick = onClick,
             enabled = mode.isAvailable,
-            modifier = Modifier.weight(1f, fill = false).fillMaxWidth().height(BUTTON_HEIGHT),
+            modifier = Modifier.weight(1f, fill = false).fillMaxWidth().height(72.dp),
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 repeat(mode.playerCount) {
-                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(ICON_SIZE))
+                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(32.dp))
                 }
                 Text(mode.title, style = MaterialTheme.typography.titleLarge)
             }

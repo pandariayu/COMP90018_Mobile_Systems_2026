@@ -27,7 +27,6 @@ import com.comp90018.flashcards.ui.auth.LoginScreen
 import com.comp90018.flashcards.ui.auth.SessionViewModel
 import com.comp90018.flashcards.ui.card.AddEditCardScreen
 import com.comp90018.flashcards.ui.deck.ChooseModeScreen
-import com.comp90018.flashcards.ui.deck.DeckDetailScreen
 import com.comp90018.flashcards.ui.deck.DeckListScreen
 import com.comp90018.flashcards.ui.deck.DeckPageScreen
 import com.comp90018.flashcards.ui.play.ChooseTimerScreen
@@ -83,27 +82,10 @@ private fun FlashcardNavHost(
                 onNavigateToDeck = { deckId ->
                     navController.navigate("deck/$deckId")
                 },
-                onNavigateToManage = { deckId ->
-                    navController.navigate("deck_detail/$deckId")
-                },
             )
         }
         deckPlayRoutes(navController)
         duoRoutes(navController)
-        composable(
-            route = "deck_detail/{deckId}",
-            arguments = listOf(navArgument("deckId") { type = NavType.StringType }),
-        ) {
-            DeckDetailScreen(
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToAddCard = { deckId ->
-                    navController.navigate("add_edit_card/$deckId")
-                },
-                onNavigateToEditCard = { deckId, cardId ->
-                    navController.navigate("add_edit_card/$deckId?cardId=$cardId")
-                },
-            )
-        }
         composable(
             route = "add_edit_card/{deckId}?cardId={cardId}",
             arguments =
@@ -144,8 +126,11 @@ private fun NavGraphBuilder.deckPlayRoutes(navController: NavHostController) {
             onPlay = { deckId ->
                 navController.navigate("choose_mode/$deckId")
             },
-            onEdit = { deckId ->
-                navController.navigate("deck_detail/$deckId")
+            onAddCard = { deckId ->
+                navController.navigate("add_edit_card/$deckId")
+            },
+            onEditCard = { deckId, cardId ->
+                navController.navigate("add_edit_card/$deckId?cardId=$cardId")
             },
         )
     }

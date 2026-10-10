@@ -13,7 +13,7 @@ import com.comp90018.flashcards.data.local.entity.ReviewLogEntity
 
 @Database(
     entities = [CardEntity::class, DeckEntity::class, CardFsrsStateEntity::class, ReviewLogEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 @TypeConverters(Converters::class)

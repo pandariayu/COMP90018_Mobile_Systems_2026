@@ -74,4 +74,14 @@ class AddEditCardViewModel
                 _uiState.update { it.copy(isSaved = true) }
             }
         }
+
+        fun deleteCard() {
+            if (cardId == null) return
+            viewModelScope.launch {
+                repository.getCardById(cardId)?.let { card ->
+                    repository.deleteCard(card)
+                }
+                _uiState.update { it.copy(isSaved = true) }
+            }
+        }
     }
