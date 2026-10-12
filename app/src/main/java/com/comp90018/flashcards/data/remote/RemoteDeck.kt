@@ -12,4 +12,6 @@ data class RemoteDeck(
     val visibility: DeckVisibility,
     val updatedAt: Instant,
     val cardCount: Int,
+    val sourceDeckId: String? = null,
+    val authorEmail: String? = null,
 )

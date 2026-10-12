@@ -68,6 +68,9 @@ class AuthRepository
         val currentUid: String?
             get() = firebaseAuth?.currentUser?.uid
 
+        val currentEmail: String?
+            get() = firebaseAuth?.currentUser?.email
+
         @Suppress("TooGenericExceptionCaught")
         suspend fun signInWithGoogle(context: Context): Result<Unit> {
             val auth = firebaseAuth

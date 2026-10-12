@@ -48,11 +48,19 @@ class DeckListViewModel
 
         init {
             viewModelScope.launch {
-                val uid =
+                val user =
                     authRepository.authState
-                        .mapNotNull { state -> (state as? AuthState.SignedIn)?.user?.uid }
+                        .mapNotNull { state -> (state as? AuthState.SignedIn)?.user }
                         .first()
-                databaseInitializer.seedForUser(uid)
+                val email = user.email.orEmpty()
+                databaseInitializer.seedForUser(user.uid, email)
+                if (email.isNotBlank()) {
+                    repository
+                        .getAllDecks(user.uid)
+                        .first()
+                        .filter { deck -> deck.authorEmail.isBlank() }
+                        .forEach { deck -> repository.updateDeck(deck.copy(authorEmail = email)) }
+                }
             }
         }
 
@@ -68,6 +76,7 @@ class DeckListViewModel
                         name = name,
                         description = description,
                         ownerId = uid,
+                        authorEmail = authRepository.currentEmail.orEmpty(),
                     ),
                 )
             }

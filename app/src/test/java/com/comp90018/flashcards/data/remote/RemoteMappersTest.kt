@@ -30,6 +30,7 @@ class RemoteMappersTest {
         assertEquals(DeckVisibility.PUBLIC, deck.visibility)
         assertEquals(updatedAt, deck.updatedAt)
         assertEquals(3, deck.cardCount)
+        assertNull(deck.authorEmail)
     }
 
     @Test
@@ -112,5 +113,48 @@ class RemoteMappersTest {
             ).toFirestoreMap()
 
         assertEquals(setOf("front", "back", "position", "frontImageUri"), map.keys)
+    }
+
+    @Test
+    fun `saved copy records its source on the first upload`() {
+        val map =
+            RemoteDeck(
+                deckId = "copy-1",
+                name = "Biology",
+                ownerId = "uid-2",
+                visibility = DeckVisibility.PRIVATE,
+                updatedAt = Instant.parse("2026-10-09T00:00:00Z"),
+                cardCount = 1,
+                sourceDeckId = "deck-1",
+            ).toFirestoreMap()
+
+        assertEquals("deck-1", map["sourceDeckId"])
+    }
+
+    @Test
+    fun `author email is stored with the deck`() {
+        val deck =
+            RemoteDeckMapper.from(
+                deckId = "deck-1",
+                data = mapOf("name" to "Biology", "authorEmail" to "ada@example.com"),
+            )
+        assertEquals("ada@example.com", deck.authorEmail)
+
+        val map =
+            deck
+                .copy(ownerId = "uid-1", cardCount = 1, updatedAt = Instant.EPOCH)
+                .toFirestoreMap()
+        assertEquals("ada@example.com", map["authorEmail"])
+        assertEquals("ada@example.com", deck.toContentUpdateMap()["authorEmail"])
+    }
+
+    @Test
+    fun `publish writes visibility without the rest of the deck`() {
+        val updatedAt = Instant.parse("2026-10-09T00:00:00Z")
+        val map = visibilityUpdateMap(DeckVisibility.PUBLIC, updatedAt)
+
+        assertEquals(setOf("visibility", "updatedAt"), map.keys)
+        assertEquals("public", map["visibility"])
+        assertEquals(updatedAt.epochSecond, (map["updatedAt"] as Timestamp).seconds)
     }
 }

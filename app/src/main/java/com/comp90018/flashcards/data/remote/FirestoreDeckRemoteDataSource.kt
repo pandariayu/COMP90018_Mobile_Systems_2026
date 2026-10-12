@@ -26,7 +26,7 @@ class FirestoreDeckRemoteDataSource
         private val firestore: FirebaseFirestore?,
     ) : DeckRemoteDataSource {
         override suspend fun upsertDeck(deck: RemoteDeck): Result<Unit> =
-            runRemote {
+            runFirestore {
                 decks()
                     .document(deck.deckId)
                     .set(deck.toFirestoreMap(), SetOptions.merge())
@@ -37,7 +37,7 @@ class FirestoreDeckRemoteDataSource
             deckId: String,
             fromServer: Boolean,
         ): Result<RemoteDeck?> =
-            runRemote {
+            runFirestore {
                 decks()
                     .document(deckId)
                     .get(if (fromServer) Source.SERVER else Source.DEFAULT)
@@ -47,7 +47,7 @@ class FirestoreDeckRemoteDataSource
             }
 
         override suspend fun listDecksForOwner(ownerId: String): Result<List<RemoteDeck>> =
-            runRemote {
+            runFirestore {
                 decks()
                     .whereEqualTo(FIELD_OWNER_ID, ownerId)
                     .orderBy(FIELD_UPDATED_AT, Query.Direction.DESCENDING)
@@ -58,7 +58,7 @@ class FirestoreDeckRemoteDataSource
             }
 
         override suspend fun listPublicDecks(): Result<List<RemoteDeck>> =
-            runRemote {
+            runFirestore {
                 decks()
                     .whereEqualTo(FIELD_VISIBILITY, DeckVisibility.PUBLIC.firestoreValue)
                     .orderBy(FIELD_UPDATED_AT, Query.Direction.DESCENDING)
@@ -69,7 +69,7 @@ class FirestoreDeckRemoteDataSource
             }
 
         override suspend fun deleteDeck(deckId: String): Result<Unit> =
-            runRemote {
+            runFirestore {
                 val cardRefs =
                     cards(deckId)
                         .get()
@@ -86,7 +86,7 @@ class FirestoreDeckRemoteDataSource
             }
 
         override suspend fun upsertCard(card: RemoteCard): Result<Unit> =
-            runRemote {
+            runFirestore {
                 cards(card.deckId)
                     .document(card.cardId)
                     .set(card.toFirestoreMap(), SetOptions.merge())
@@ -97,7 +97,7 @@ class FirestoreDeckRemoteDataSource
             deckId: String,
             fromServer: Boolean,
         ): Result<List<RemoteCard>> =
-            runRemote {
+            runFirestore {
                 cards(deckId)
                     .orderBy(FIELD_POSITION)
                     .get(if (fromServer) Source.SERVER else Source.DEFAULT)
@@ -106,13 +106,26 @@ class FirestoreDeckRemoteDataSource
                     .map { RemoteCardMapper.from(deckId, it.id, it.data.orEmpty()) }
             }
 
+        override suspend fun setVisibility(
+            deckId: String,
+            visibility: DeckVisibility,
+            updatedAt: Instant,
+        ): Result<Unit> =
+            runFirestore {
+                decks()
+                    .document(deckId)
+                    .set(visibilityUpdateMap(visibility, updatedAt), SetOptions.merge())
+                    .await()
+                awaitServer()
+            }
+
         override suspend fun pushDeck(
             deck: RemoteDeck,
             cards: List<RemoteCard>,
             deleteCardIds: List<String>,
             create: Boolean,
         ): Result<Unit> =
-            runRemote {
+            runFirestore {
                 val deckRef = decks().document(deck.deckId)
                 if (create) {
                     deckRef.set(deck.toFirestoreMap()).await()
@@ -145,7 +158,7 @@ class FirestoreDeckRemoteDataSource
             deckId: String,
             cardId: String,
         ): Result<Unit> =
-            runRemote {
+            runFirestore {
                 cards(deckId).document(cardId).delete().await()
             }
 
@@ -165,21 +178,7 @@ class FirestoreDeckRemoteDataSource
             }
         }
 
-        @Suppress("TooGenericExceptionCaught")
-        private suspend fun <T> runRemote(block: suspend () -> T): Result<T> =
-            try {
-                Result.success(block())
-            } catch (timeout: TimeoutCancellationException) {
-                Result.failure(timeout)
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                Log.w(TAG, "Firestore call failed", error)
-                Result.failure(error)
-            }
-
         private companion object {
-            const val TAG = "DeckSync"
             const val COLLECTION_DECKS = "decks"
             const val COLLECTION_CARDS = "cards"
             const val FIELD_OWNER_ID = "ownerId"
@@ -191,6 +190,19 @@ class FirestoreDeckRemoteDataSource
             const val BATCH_WRITE_LIMIT = 450
             const val SERVER_ACK_TIMEOUT_MS = 20_000L
         }
+    }
+
+@Suppress("TooGenericExceptionCaught")
+internal suspend fun <T> runFirestore(block: suspend () -> T): Result<T> =
+    try {
+        Result.success(block())
+    } catch (timeout: TimeoutCancellationException) {
+        Result.failure(timeout)
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
+        Log.w("DeckSync", "Firestore call failed", error)
+        Result.failure(error)
     }
 
 internal object RemoteDeckMapper {
@@ -205,6 +217,8 @@ internal object RemoteDeckMapper {
             visibility = DeckVisibility.fromFirestore(data["visibility"] as? String),
             updatedAt = (data["updatedAt"] as? Timestamp)?.toDate()?.toInstant() ?: Instant.EPOCH,
             cardCount = (data["cardCount"] as? Number)?.toInt() ?: 0,
+            sourceDeckId = data["sourceDeckId"] as? String,
+            authorEmail = data["authorEmail"] as? String,
         )
 }
 
@@ -226,20 +240,32 @@ internal object RemoteCardMapper {
 }
 
 internal fun RemoteDeck.toFirestoreMap(): Map<String, Any?> =
+    buildMap {
+        put("name", name)
+        put("ownerId", ownerId)
+        put("visibility", visibility.firestoreValue)
+        put("updatedAt", Timestamp(updatedAt.epochSecond, updatedAt.nano))
+        put("cardCount", cardCount)
+        sourceDeckId?.let { put("sourceDeckId", it) }
+        authorEmail?.takeIf { it.isNotBlank() }?.let { put("authorEmail", it) }
+    }
+
+internal fun visibilityUpdateMap(
+    visibility: DeckVisibility,
+    updatedAt: Instant,
+): Map<String, Any?> =
     mapOf(
-        "name" to name,
-        "ownerId" to ownerId,
         "visibility" to visibility.firestoreValue,
         "updatedAt" to Timestamp(updatedAt.epochSecond, updatedAt.nano),
-        "cardCount" to cardCount,
     )
 
 internal fun RemoteDeck.toContentUpdateMap(): Map<String, Any?> =
-    mapOf(
-        "name" to name,
-        "updatedAt" to Timestamp(updatedAt.epochSecond, updatedAt.nano),
-        "cardCount" to cardCount,
-    )
+    buildMap {
+        put("name", name)
+        put("updatedAt", Timestamp(updatedAt.epochSecond, updatedAt.nano))
+        put("cardCount", cardCount)
+        authorEmail?.takeIf { it.isNotBlank() }?.let { put("authorEmail", it) }
+    }
 
 internal fun RemoteCard.toFirestoreMap(): Map<String, Any?> =
     buildMap {

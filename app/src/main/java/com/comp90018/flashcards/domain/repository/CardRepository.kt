@@ -13,6 +13,14 @@ interface CardRepository {
 
     suspend fun insertDeck(deck: DeckEntity)
 
+    /**
+     * Inserts a deck and its cards, then queues one cloud sync. Study progress is not copied.
+     */
+    suspend fun insertDeckWithCards(
+        deck: DeckEntity,
+        cards: List<CardEntity>,
+    )
+
     suspend fun updateDeck(deck: DeckEntity)
 
     suspend fun deleteDeck(deck: DeckEntity)

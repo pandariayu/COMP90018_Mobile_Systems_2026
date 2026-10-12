@@ -10,9 +10,9 @@ This document is the missing write-up for [SPIKE #17](https://github.com/hboyket
 
 | In scope (#18) | Out of scope (later issues) |
 |---|---|
-| Firestore project wiring, rules, indexes | Upload / download UI (#20) |
+| Firestore project wiring, rules, indexes | Favourites list |
 | Deck + card document shape | Friends / publish endpoints (#22–#23) |
-| Thin Android remote data source | Favourites list |
+| Thin Android remote data source | Android friends screens |
 | Visibility `private` / `public` | Per-user study progress on shared decks |
 
 Per-user spaced-repetition progress stays in **local Room** until a later sync design. Do not store SM-2 / FSRS fields on shared deck documents.
@@ -34,9 +34,11 @@ social_backends/{namespace}/...  # profiles, friendships, private ID mappings
 |---|---|---|
 | `name` | string | Display name |
 | `ownerId` | string | Firebase Auth uid |
+| `authorEmail` | string? | Email of the person who created the deck |
 | `visibility` | string | `"private"` or `"public"` (publish for search / Save-a-copy) |
 | `updatedAt` | timestamp | UTC; used for ordering and conflict hints |
 | `cardCount` | number | Denormalised count for catalogue lists |
+| `sourceDeckId` | string? | Set on a saved copy; later edits to the source do not change the copy |
 
 Document id = same UUID as local `DeckEntity.deckId` so sync can match rows later.
 
@@ -99,6 +101,12 @@ Local Room stays the source of truth. Deck and card edits are stored in a local 
 - The first push creates the deck as `private`. Later pushes update `name`, cards, `cardCount`, and `updatedAt` only, so a published deck stays public (#20).
 - Deleting a local deck deletes that cloud deck.
 - Decks already on the device are enqueued once per signed-in user.
+
+## Publish and save-a-copy (#20)
+
+Publish sets `visibility` to `public` after the deck has been uploaded. Unpublish sets it back to `private`. Only the owner can do either.
+
+Save a copy reads a deck the signed-in user can already read and inserts a new local deck and new card ids. Study progress is not copied. `sourceDeckId` records where the copy came from.
 
 ## Android client
 

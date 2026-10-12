@@ -29,6 +29,7 @@ import com.comp90018.flashcards.ui.card.AddEditCardScreen
 import com.comp90018.flashcards.ui.deck.ChooseModeScreen
 import com.comp90018.flashcards.ui.deck.DeckListScreen
 import com.comp90018.flashcards.ui.deck.DeckPageScreen
+import com.comp90018.flashcards.ui.deck.PublicDeckScreen
 import com.comp90018.flashcards.ui.play.ChooseTimerScreen
 import com.comp90018.flashcards.ui.play.DuoScreen
 import com.comp90018.flashcards.ui.study.StudyScreen
@@ -82,7 +83,11 @@ private fun FlashcardNavHost(
                 onNavigateToDeck = { deckId ->
                     navController.navigate("deck/$deckId")
                 },
+                onBrowse = { navController.navigate("catalogue") },
             )
+        }
+        composable("catalogue") {
+            PublicDeckScreen(onNavigateBack = { navController.popBackStack() })
         }
         deckPlayRoutes(navController)
         duoRoutes(navController)

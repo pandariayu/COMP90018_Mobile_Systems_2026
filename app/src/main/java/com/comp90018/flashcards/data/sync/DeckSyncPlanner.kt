@@ -50,6 +50,8 @@ internal object DeckSyncPlanner {
                             visibility = remoteDeck?.visibility ?: DeckVisibility.PRIVATE,
                             updatedAt = now,
                             cardCount = cards.size,
+                            sourceDeckId = localDeck.sourceDeckId,
+                            authorEmail = localDeck.authorEmail.takeIf { it.isNotBlank() },
                         ),
                     cards = cards,
                     deleteCardIds = staleCardIds(remoteCards, cards),
@@ -75,7 +77,9 @@ internal object DeckSyncPlanner {
         val remoteById = remoteCards.associateBy { it.cardId }
         val namesMatch = localDeck.name == remoteDeck.name
         val countsMatch = localCards.size == remoteDeck.cardCount && remoteById.size == localCards.size
-        return namesMatch && countsMatch && localCards.all { card -> remoteById[card.cardId] == card }
+        val authorsMatch = localDeck.authorEmail.isBlank() || localDeck.authorEmail == remoteDeck.authorEmail
+        val cardsMatch = localCards.all { card -> remoteById[card.cardId] == card }
+        return namesMatch && countsMatch && authorsMatch && cardsMatch
     }
 
     private fun CardEntity.toRemote(): RemoteCard =

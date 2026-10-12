@@ -11,8 +11,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.comp90018.flashcards.data.local.entity.CardEntity
+import com.comp90018.flashcards.data.remote.DeckVisibility
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,15 +40,26 @@ fun DeckPageScreen(
     viewModel: DeckSummaryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
+    LaunchedEffect(uiState.message) {
+        val text = uiState.message ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(text)
+        viewModel.consumeMessage()
+    }
+
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             DeckPageTopBar(
                 onNavigateBack = onNavigateBack,
+                uiState = uiState,
+                onPublish = viewModel::publish,
+                onUnpublish = viewModel::unpublish,
                 onEditDeckInfo = { showEditDialog = true },
                 onDeleteDeck = { showDeleteConfirmDialog = true },
             )
@@ -71,26 +85,48 @@ fun DeckPageScreen(
         }
     }
 
-    if (showEditDialog) {
+    DeckPageDialogs(
+        uiState = uiState,
+        editing = showEditDialog,
+        deleting = showDeleteConfirmDialog,
+        onEdit = viewModel::updateDeck,
+        onDelete = { viewModel.deleteDeck(onDeleted = onNavigateBack) },
+        onDismiss = {
+            showEditDialog = false
+            showDeleteConfirmDialog = false
+        },
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DeckPageDialogs(
+    uiState: DeckSummaryUiState,
+    editing: Boolean,
+    deleting: Boolean,
+    onEdit: (String, String) -> Unit,
+    onDelete: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    if (editing) {
         EditDeckDialog(
             currentName = uiState.deckName,
             currentDescription = uiState.deckDescription,
-            onConfirm = { newName, newDescription ->
-                viewModel.updateDeck(newName, newDescription)
-                showEditDialog = false
+            onConfirm = { name, description ->
+                onEdit(name, description)
+                onDismiss()
             },
-            onDismiss = { showEditDialog = false },
+            onDismiss = onDismiss,
         )
     }
-
-    if (showDeleteConfirmDialog) {
+    if (deleting) {
         DeleteDeckDialog(
             deckName = uiState.deckName,
             onConfirm = {
-                showDeleteConfirmDialog = false
-                viewModel.deleteDeck(onDeleted = onNavigateBack)
+                onDismiss()
+                onDelete()
             },
-            onDismiss = { showDeleteConfirmDialog = false },
+            onDismiss = onDismiss,
         )
     }
 }
@@ -99,6 +135,9 @@ fun DeckPageScreen(
 @Composable
 private fun DeckPageTopBar(
     onNavigateBack: () -> Unit,
+    uiState: DeckSummaryUiState,
+    onPublish: () -> Unit,
+    onUnpublish: () -> Unit,
     onEditDeckInfo: () -> Unit,
     onDeleteDeck: () -> Unit,
 ) {
@@ -120,6 +159,15 @@ private fun DeckPageTopBar(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false },
                 ) {
+                    val published = uiState.visibility == DeckVisibility.PUBLIC
+                    PublishMenuItem(
+                        published = published,
+                        enabled = !uiState.publishBusy,
+                        onClick = {
+                            showMenu = false
+                            if (published) onUnpublish() else onPublish()
+                        },
+                    )
                     DropdownMenuItem(
                         text = { Text("Edit Deck Info") },
                         leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
@@ -145,6 +193,25 @@ private fun DeckPageTopBar(
                 }
             }
         },
+    )
+}
+
+@Composable
+private fun PublishMenuItem(
+    published: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    DropdownMenuItem(
+        text = { Text(if (published) "Unpublish" else "Publish") },
+        leadingIcon = {
+            Icon(
+                if (published) Icons.Default.Lock else Icons.Default.Share,
+                contentDescription = null,
+            )
+        },
+        enabled = enabled,
+        onClick = onClick,
     )
 }
 
@@ -289,10 +356,34 @@ private fun DeckHeaderSection(uiState: DeckSummaryUiState) {
             fontWeight = FontWeight.Bold,
         )
 
+        if (uiState.authorEmail.isNotBlank()) {
+            Text(
+                text = uiState.authorEmail,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        if (uiState.visibility == DeckVisibility.PUBLIC) {
+            Text(
+                text = "Public",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+
         if (uiState.deckDescription.isNotBlank()) {
             Text(
                 text = uiState.deckDescription,
                 style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        uiState.copiedFromName?.let { sourceName ->
+            Text(
+                text = "Copy of $sourceName",
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

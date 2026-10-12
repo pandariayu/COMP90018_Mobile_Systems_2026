@@ -54,6 +54,21 @@ class DeckSyncTest {
     }
 
     @Test
+    fun `author email is sent when the cloud deck does not have one`() {
+        val plan =
+            DeckSyncPlanner.plan(
+                deck().copy(authorEmail = "ada@example.com"),
+                listOf(card()),
+                remoteDeck(cardCount = 1),
+                listOf(remoteCard("card-1")),
+                now,
+            )
+
+        val push = plan as DeckSyncPlan.Push
+        assertEquals("ada@example.com", push.deck.authorEmail)
+    }
+
+    @Test
     fun `unchanged public deck is not written again`() {
         val localCard = card()
         val plan =
@@ -228,6 +243,12 @@ class DeckSyncTest {
         override suspend fun deleteCard(
             deckId: String,
             cardId: String,
+        ): Result<Unit> = unused()
+
+        override suspend fun setVisibility(
+            deckId: String,
+            visibility: DeckVisibility,
+            updatedAt: Instant,
         ): Result<Unit> = unused()
 
         override suspend fun pushDeck(

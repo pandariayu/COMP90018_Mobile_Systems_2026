@@ -40,6 +40,15 @@ class CardRepositoryImpl
             deckSync.deckChanged(deck.deckId, deck.ownerId)
         }
 
+        override suspend fun insertDeckWithCards(
+            deck: DeckEntity,
+            cards: List<CardEntity>,
+        ) {
+            deckDao.insertDeck(deck)
+            cards.forEach { card -> cardDao.insertCard(card) }
+            deckSync.deckChanged(deck.deckId, deck.ownerId)
+        }
+
         override suspend fun updateDeck(deck: DeckEntity) {
             deckDao.updateDeck(deck)
             deckSync.deckChanged(deck.deckId, deck.ownerId)

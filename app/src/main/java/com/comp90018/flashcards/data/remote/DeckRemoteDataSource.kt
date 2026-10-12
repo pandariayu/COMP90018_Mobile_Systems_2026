@@ -1,5 +1,7 @@
 package com.comp90018.flashcards.data.remote
 
+import java.time.Instant
+
 /**
  * Firestore access for cloud decks. Local Room stays the source of truth; the sync coordinator
  * pushes changes when the device is online. Study progress is not stored here.
@@ -28,6 +30,15 @@ interface DeckRemoteDataSource {
     suspend fun deleteCard(
         deckId: String,
         cardId: String,
+    ): Result<Unit>
+
+    /**
+     * Owner-only publish or unpublish. Does not change the deck name, cards, or owner.
+     */
+    suspend fun setVisibility(
+        deckId: String,
+        visibility: DeckVisibility,
+        updatedAt: Instant,
     ): Result<Unit>
 
     /**

@@ -28,6 +28,7 @@ import com.comp90018.flashcards.data.local.entity.DeckEntity
 @Composable
 fun DeckListScreen(
     onNavigateToDeck: (String) -> Unit,
+    onBrowse: () -> Unit,
     viewModel: DeckListViewModel = hiltViewModel(),
 ) {
     val decks by viewModel.decks.collectAsState()
@@ -54,6 +55,7 @@ fun DeckListScreen(
             displayName = displayName,
             decks = decks,
             onNavigateToDeck = onNavigateToDeck,
+            onBrowse = onBrowse,
             modifier = Modifier.padding(padding),
         )
     }
@@ -86,6 +88,7 @@ private fun DeckListBody(
     displayName: String,
     decks: List<DeckEntity>,
     onNavigateToDeck: (String) -> Unit,
+    onBrowse: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -95,7 +98,7 @@ private fun DeckListBody(
                 .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        DeckListHeader(displayName = displayName)
+        DeckListHeader(displayName = displayName, onBrowse = onBrowse)
 
         if (decks.isEmpty()) {
             Box(
@@ -158,17 +161,29 @@ private fun DeckListTopBar(onSignOut: () -> Unit) {
 }
 
 @Composable
-private fun DeckListHeader(displayName: String) {
+private fun DeckListHeader(
+    displayName: String,
+    onBrowse: () -> Unit,
+) {
     Column(
         horizontalAlignment = Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
     ) {
-        Text(
-            text = "My Decks",
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "My Decks",
+                style = MaterialTheme.typography.headlineLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            TextButton(onClick = onBrowse) {
+                Text("Browse")
+            }
+        }
 
         if (displayName.isNotBlank()) {
             Text(
@@ -232,6 +247,15 @@ fun DeckItem(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (deck.authorEmail.isNotBlank()) {
+                Text(
+                    text = deck.authorEmail,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }

@@ -23,21 +23,32 @@ class DatabaseInitializer
     ) {
         private val seedMutex = Mutex()
 
-        suspend fun seedForUser(ownerId: String) {
+        suspend fun seedForUser(
+            ownerId: String,
+            authorEmail: String,
+        ) {
             seedMutex.withLock {
-                SEED_DECKS.forEach { spec -> ensureDeck(ownerId, spec) }
+                SEED_DECKS.forEach { spec -> ensureDeck(ownerId, authorEmail, spec) }
             }
         }
 
         private suspend fun ensureDeck(
             ownerId: String,
+            authorEmail: String,
             spec: SeedDeck,
         ) {
             val deckId = "seed-$ownerId-${spec.slug}"
             if (deckDao.getDeckById(deckId) != null) {
                 return
             }
-            deckDao.insertDeck(DeckEntity(deckId = deckId, name = spec.name, ownerId = ownerId))
+            deckDao.insertDeck(
+                DeckEntity(
+                    deckId = deckId,
+                    name = spec.name,
+                    ownerId = ownerId,
+                    authorEmail = authorEmail,
+                ),
+            )
             spec.cards.forEachIndexed { index, card ->
                 cardDao.insertCard(
                     CardEntity(

@@ -2,6 +2,8 @@ package com.comp90018.flashcards.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.comp90018.flashcards.data.local.DeckSyncDatabase
 import com.comp90018.flashcards.data.local.FlashcardDatabase
 import com.comp90018.flashcards.data.local.dao.CardDao
@@ -28,7 +30,8 @@ object DatabaseModule {
                 context,
                 FlashcardDatabase::class.java,
                 "flashcard_db",
-            ).fallbackToDestructiveMigration()
+            ).addMigrations(MIGRATION_5_6, MIGRATION_6_7)
+            .fallbackToDestructiveMigration()
             .build()
 
     @Provides
@@ -54,4 +57,19 @@ object DatabaseModule {
 
     @Provides
     fun provideDeckSyncOutboxDao(database: DeckSyncDatabase): DeckSyncOutboxDao = database.outboxDao()
+
+    private val MIGRATION_5_6 =
+        object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE decks ADD COLUMN sourceDeckId TEXT")
+                db.execSQL("ALTER TABLE decks ADD COLUMN copiedFromName TEXT")
+            }
+        }
+
+    private val MIGRATION_6_7 =
+        object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE decks ADD COLUMN authorEmail TEXT NOT NULL DEFAULT ''")
+            }
+        }
 }

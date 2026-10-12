@@ -9,4 +9,7 @@ data class DeckEntity(
     val name: String,
     val description: String = "",
     val ownerId: String,
+    val authorEmail: String = "",
+    val sourceDeckId: String? = null,
+    val copiedFromName: String? = null,
 )
