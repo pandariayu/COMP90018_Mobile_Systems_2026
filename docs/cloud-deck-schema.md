@@ -108,6 +108,8 @@ Publish sets `visibility` to `public` after the deck has been uploaded. Unpublis
 
 Save a copy reads a deck the signed-in user can already read and inserts a new local deck and new card ids. Study progress is not copied. `sourceDeckId` records where the copy came from.
 
+Browse loads every public deck and filters that list by deck name or `authorEmail`.
+
 ## Android client
 
 - Dependency: `com.google.firebase:firebase-firestore` (Firebase BOM already in the app).

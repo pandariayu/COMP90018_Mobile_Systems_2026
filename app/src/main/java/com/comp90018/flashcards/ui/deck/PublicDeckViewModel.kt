@@ -18,6 +18,7 @@ data class PublicDeckUiState(
     val decks: List<RemoteDeck> = emptyList(),
     val ownerId: String? = null,
     val savingId: String? = null,
+    val query: String = "",
     val error: String? = null,
     val message: String? = null,
 )
@@ -77,6 +78,10 @@ class PublicDeckViewModel
                     )
                 }
             }
+        }
+
+        fun onQueryChange(query: String) {
+            _uiState.update { it.copy(query = query) }
         }
 
         fun consumeMessage() {

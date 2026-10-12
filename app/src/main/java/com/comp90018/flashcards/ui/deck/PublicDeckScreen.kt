@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -52,6 +54,7 @@ fun PublicDeckScreen(
     ) { padding ->
         PublicDeckBody(
             uiState = uiState,
+            onQueryChange = viewModel::onQueryChange,
             onRetry = viewModel::refresh,
             onSaveCopy = viewModel::saveCopy,
             modifier = Modifier.padding(padding),
@@ -62,6 +65,7 @@ fun PublicDeckScreen(
 @Composable
 private fun PublicDeckBody(
     uiState: PublicDeckUiState,
+    onQueryChange: (String) -> Unit,
     onRetry: () -> Unit,
     onSaveCopy: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -85,10 +89,52 @@ private fun PublicDeckBody(
                 Spacer(Modifier.height(16.dp))
                 Button(onClick = onRetry) { Text("Retry") }
             }
-        uiState.decks.isEmpty() ->
-            Box(modifier = modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        else ->
+            Column(modifier = modifier.fillMaxSize()) {
+                PublicDeckSearch(query = uiState.query, onQueryChange = onQueryChange)
+                PublicDeckResults(uiState = uiState, onSaveCopy = onSaveCopy)
+            }
+    }
+}
+
+@Composable
+private fun PublicDeckSearch(
+    query: String,
+    onQueryChange: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        singleLine = true,
+        placeholder = { Text("Search by name or creator") },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        trailingIcon = {
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                }
+            }
+        },
+    )
+}
+
+@Composable
+private fun PublicDeckResults(
+    uiState: PublicDeckUiState,
+    onSaveCopy: (String) -> Unit,
+) {
+    val decks = uiState.decks.matchingPublicSearch(uiState.query)
+    when {
+        decks.isEmpty() ->
+            Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
                 Text(
-                    text = "No public decks yet.\nPublish one of yours to share it.",
+                    text =
+                        if (uiState.query.isBlank()) {
+                            "No public decks yet.\nPublish one of yours to share it."
+                        } else {
+                            "No public decks match that search."
+                        },
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -96,11 +142,11 @@ private fun PublicDeckBody(
             }
         else ->
             LazyColumn(
-                modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(vertical = 16.dp),
+                contentPadding = PaddingValues(bottom = 16.dp),
             ) {
-                items(uiState.decks, key = { it.deckId }) { deck ->
+                items(decks, key = { it.deckId }) { deck ->
                     PublicDeckRow(
                         deck = deck,
                         ownedByMe = deck.ownerId == uiState.ownerId,
