@@ -12,8 +12,10 @@ data class RemoteDeck(
     val visibility: DeckVisibility,
     val updatedAt: Instant,
     val cardCount: Int,
-    /** Optional creator email for catalogue search. Not stored in Room. */
+    /** Legacy creator email metadata. Not displayed in the catalogue or stored in Room. */
     val authorEmail: String? = null,
     /** When the deck was first created; used for stable newest-first My Decks order. */
     val createdAt: Instant? = null,
+    /** Current creator profile name supplied by the social API, not stored in Room. */
+    val ownerDisplayName: String? = null,
 )

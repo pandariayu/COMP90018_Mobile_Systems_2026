@@ -31,6 +31,9 @@ data class SocialDeck(
     val visibility: String,
     val cardCount: Int,
     val copiedFrom: DeckAttribution? = null,
+    val ownerDisplayName: String? = null,
+    val updatedAt: String? = null,
+    val createdAt: String? = null,
 )
 
 @Serializable

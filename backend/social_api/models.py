@@ -94,6 +94,8 @@ class Deck(BaseModel):
     updatedAt: datetime
     cardCount: int
     copiedFrom: DeckSource | None = None
+    ownerDisplayName: str | None = None
+    createdAt: datetime | None = None
 
 
 class CardContent(BaseModel):

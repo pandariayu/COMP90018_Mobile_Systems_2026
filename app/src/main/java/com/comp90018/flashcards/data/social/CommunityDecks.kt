@@ -1,30 +1,39 @@
 package com.comp90018.flashcards.data.social
 
-import com.comp90018.flashcards.data.auth.AuthRepository
 import com.comp90018.flashcards.data.local.dao.DeckDao
-import com.comp90018.flashcards.data.remote.DeckRemoteDataSource
+import com.comp90018.flashcards.data.remote.DeckVisibility
 import com.comp90018.flashcards.data.remote.RemoteDeck
 import com.comp90018.flashcards.data.sync.DeckSyncCoordinator
 import com.comp90018.flashcards.data.sync.DeckSyncOutcome
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.time.Instant
 import javax.inject.Inject
 
 class CommunityDecks
     @Inject
     constructor(
         private val api: SocialApi,
-        private val remote: DeckRemoteDataSource,
         private val local: DeckDao,
         private val sync: DeckSyncCoordinator,
         private val session: SocialSession,
-        private val authRepository: AuthRepository,
     ) {
         suspend fun catalogue(uid: String): List<RemoteDeck> {
             session.requireUser(uid)
-            val decks = remote.listPublicDecks().getOrThrow()
+            val decks: List<SocialDeck> = socialJson.decodeFromString(api.request(uid, "GET", "/v1/decks/public"))
             session.requireUser(uid)
-            return decks
+            return decks.map { deck ->
+                RemoteDeck(
+                    deckId = deck.deckId,
+                    name = deck.name,
+                    ownerId = deck.ownerId,
+                    visibility = DeckVisibility.fromFirestore(deck.visibility),
+                    updatedAt = deck.updatedAt?.let(Instant::parse) ?: Instant.EPOCH,
+                    cardCount = deck.cardCount,
+                    createdAt = deck.createdAt?.let(Instant::parse),
+                    ownerDisplayName = deck.ownerDisplayName,
+                )
+            }
         }
 
         suspend fun prepare(
@@ -60,23 +69,9 @@ class CommunityDecks
             public: Boolean,
         ): SocialDeck {
             if (public) prepare(uid, deckId)
-            val published: SocialDeck =
-                socialJson.decodeFromString(
-                    api.request(uid, if (public) "POST" else "DELETE", "/v1/decks/$deckId/publish"),
-                )
-            if (public) {
-                stampAuthorEmail(deckId)
-            }
-            return published
-        }
-
-        /** Stores the publisher's email on the cloud deck so Discover can search by creator. */
-        private suspend fun stampAuthorEmail(deckId: String) {
-            val email = authRepository.currentEmail?.takeIf { it.isNotBlank() }
-            val deck = email?.let { remote.getDeck(deckId).getOrNull() }
-            if (email != null && deck != null && deck.authorEmail != email) {
-                remote.upsertDeck(deck.copy(authorEmail = email)).getOrThrow()
-            }
+            return socialJson.decodeFromString(
+                api.request(uid, if (public) "POST" else "DELETE", "/v1/decks/$deckId/publish"),
+            )
         }
 
         suspend fun share(

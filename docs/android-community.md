@@ -8,7 +8,7 @@ The app uses its existing Firebase sign-in for both Firestore and the Python soc
 
 After Firebase sign-in, users without a community profile must choose their unique username and display name before reaching **My Decks**. Existing profiles skip this onboarding step. **My Decks → Account** lets users update their display name, log out, or delete their account; profile editing is no longer in Friends. The dashboard shows the community display name.
 
-1. From **My Decks**, open **Community**. **Discover** lists public decks and filters the loaded catalogue by deck name or creator email as you type. Each row offers **Preview deck** and **Save a copy**, and marks your own decks as **Yours**. You can also save from the preview. The copy is private and editable; **Open my saved copy** opens the normal deck screen for editing and study.
+1. From **My Decks**, open **Community**. **Discover** lists public decks and filters the loaded catalogue by deck name or creator display name as you type. Each row shows the creator's current profile display name and marks your own decks as **Yours**. Open a row to preview the deck and save a copy. The copy is private and editable; **Open my saved copy** opens the normal deck screen for editing and study.
 2. Under **Community → Friends**, find a friend by exact username, send a request, and have the other account accept it. Incoming requests can be accepted/declined; outgoing requests can be cancelled. While Friends is open, the app checks every few seconds and shows `{name} approved your friend request` or `{name} rejected your friend request` as soon as the other person responds. Removing a friend ends private sharing access in both directions.
 3. Open one of your decks, then **⋮ → Share with friends**. The app waits for local changes to sync before loading the community view. Choose **Share with a friend**, select **Share**, and use **Copy deck code**. Send that code to the recipient yourself. They paste it into **Community → Discover → Open shared deck**. A code does not grant permission on its own.
 4. Use **Revoke access** to revoke a friend's share. The API does not list existing share grants, so the sheet offers share/revoke actions without claiming a current grant status. After unfriending, old private grants are already inactive.
@@ -38,13 +38,15 @@ Save-a-copy keeps a pending UUID in private preferences, scoped to the user and 
 
 Source attribution stays on the cloud deck and is displayed as **View source deck**. Normal sync uses merge/content updates and preserves attribution and public visibility. The import keeps HTTPS image references and omits device-local image paths; image binaries are not uploaded or copied by this feature. The preview currently shows text and an attachment indicator.
 
+The deck details header shows **Created by** followed by the deck owner's profile display name. Owned decks use the cached profile offline; cloud deck reads resolve the current owner's profile through the API's optional `ownerDisplayName` field. Saved copies show their own owner's name, with the original deck linked through **View source deck**. Profiles without a display name omit the creator label.
+
 The backend's copy limit remains 400 cards / 4 MiB. A shared-deck inbox, notifications, portable image uploads, and live catalogue subscriptions are not implemented. Private decks are opened using their shared code; public decks are browsable. Catalogue refresh and social actions require network access, while imported copies can be studied locally.
 
 ## Verification
 
 The public deck row and publish menu adapt Jason Ren's UI from [PR #64](https://github.com/pandariayu/COMP90018_Mobile_Systems_2026/pull/64), commit `c2350e0`. They are integrated into the existing Community navigation rather than adding a second Browse screen. `CommunityDecks.publish` is the only Android publish/unpublish implementation, and both catalogue and preview save actions use `DeckCopies.save` with persisted retry receipts.
 
-The direct-Firestore `DeckExchange` copy/visibility path from PR #64 is not imported. Cloud attribution stays in the server-managed `copiedFrom` field; Room is version 6 (`createdAtEpochMillis` for stable newest-first My Decks). Optional Firestore `authorEmail` is written when you Publish (for Discover search only) and is not stored in Room. Source attribution in the preview still uses the source-deck link.
+The direct-Firestore `DeckExchange` copy/visibility path from PR #64 is not imported. Cloud attribution stays in the server-managed `copiedFrom` field; Room is version 6 (`createdAtEpochMillis` for stable newest-first My Decks). Discover loads `/v1/decks/public`, which resolves current profile display names once per owner and returns decks in newest-update order. Existing decks need no migration or republishing. Legacy Firestore `authorEmail` values are no longer written by Publish, displayed, or searched in Discover. Source attribution in the preview still uses the source-deck link. The updated API must be deployed before using this catalogue endpoint.
 
 Run from the repository root:
 

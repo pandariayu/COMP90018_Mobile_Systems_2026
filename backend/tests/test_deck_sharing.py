@@ -17,6 +17,34 @@ def test_owner_public_and_anonymous_access_match_without_social_profile(
     for user in ("alice", "bob", None):
         allowed = user is not None and (user == "alice" or visibility == "public")
         assert_reads(client, raw_client, deck, user, allowed)
+        if allowed:
+            result = client.get(f"/v1/decks/{deck.id}", headers=headers(user))
+            assert result.json()["ownerDisplayName"] is None
+
+
+@pytest.mark.parametrize("access", ["owner", "public", "shared"])
+def test_deck_creator_uses_current_owner_profile(client, profiles, deck, access):
+    user = "alice" if access == "owner" else "bob"
+    if access == "public":
+        deck.update({"visibility": "public"})
+    elif access == "shared":
+        make_friends(client, profiles)
+        assert share(client, deck, profiles).status_code == 200
+    # The profile is authoritative even if the deck contains stale creator metadata.
+    deck.update({"ownerDisplayName": "Outdated name"})
+    original = deck.get().to_dict()
+    path = f"/v1/decks/{deck.id}"
+    result = client.get(path, headers=headers(user))
+    assert result.status_code == 200
+    assert result.json()["ownerDisplayName"] == "Alice"
+    renamed = client.put(
+        "/v1/me",
+        headers=headers("alice"),
+        json={"username": "alice", "display_name": "Jason"},
+    )
+    assert renamed.status_code == 200
+    assert client.get(path, headers=headers(user)).json()["ownerDisplayName"] == "Jason"
+    assert deck.get().to_dict() == original
 
 
 def test_explicit_share_is_required_and_preserves_deck_schema(client, raw_client, profiles, deck):

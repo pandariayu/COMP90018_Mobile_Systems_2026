@@ -40,10 +40,12 @@ account_deletions/{FirebaseUid}  # server-only, durable deletion barrier
 | `updatedAt` | timestamp | UTC; used for catalogue ordering and conflict hints |
 | `createdAt` | timestamp? | First-created time; My Decks sorts newest first |
 | `cardCount` | number | Denormalised count for catalogue lists |
-| `authorEmail` | string? | Optional creator email for Discover search; stamped on Publish |
+| `authorEmail` | string? | Legacy creator email metadata; no longer written by Publish or used by Discover |
 | `copiedFrom` | map? | API-issued source attribution on saved copies; absent on original decks |
 
 Document id = same UUID as local `DeckEntity.deckId` so sync can match rows later.
+
+The social API's deck detail and public catalogue responses add optional `ownerDisplayName`, resolved from the owner's current social profile rather than persisted on the deck. Discover displays and searches this name. The catalogue endpoint `/v1/decks/public` preserves newest-update ordering and excludes decks belonging to accounts being deleted.
 
 `copiedFrom` contains `deckId` (immediate source UUID), `ownerId` (source owner's Firebase UID), and `copiedAt` (UTC timestamp). The API creates a new private deck owned by the caller, with fresh deck/card UUIDs and an actual card count. It copies only card content, including image URI references; it does not copy image files, sharing permissions, or study progress. Copies remain independent of later changes to the source. See the [copy contract and limits](../backend/README.md#publish-and-save-a-copy-contract).
 

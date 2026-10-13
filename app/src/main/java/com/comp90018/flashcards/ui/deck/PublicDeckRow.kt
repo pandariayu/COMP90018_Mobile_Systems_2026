@@ -17,7 +17,11 @@ internal fun PublicDeckRow(
     onOpenDeck: (String) -> Unit, // opens the deck page
     modifier: Modifier = Modifier,
 ) {
-    val owner = if (ownedByMe) "Yours" else deck.authorEmail?.takeIf { it.isNotBlank() } ?: "Public"
+    val owner =
+        listOfNotNull(
+            deck.ownerDisplayName?.takeIf { it.isNotBlank() },
+            "Yours".takeIf { ownedByMe },
+        ).joinToString(" · ").ifBlank { "Public" }
 
     Card(
         onClick = { onOpenDeck(deck.deckId) },

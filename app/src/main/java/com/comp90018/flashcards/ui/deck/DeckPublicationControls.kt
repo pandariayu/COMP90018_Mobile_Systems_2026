@@ -69,7 +69,7 @@ internal fun DeckPublicationStatus(
         deck?.let {
             Text(if (it.visibility == "public") "Public" else "Private", style = MaterialTheme.typography.labelLarge)
             it.copiedFrom?.let { source ->
-                TextButton(onClick = { onOpenSource(source.deckId) }) { Text("Saved copy · View source deck") }
+                TextButton(onClick = { onOpenSource(source.deckId) }) { Text("View source deck") }
             }
         }
         SocialStatus(task)

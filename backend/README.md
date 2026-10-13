@@ -81,6 +81,7 @@ Firebase handles account registration, passwords, password reset, and Google sig
 | DELETE | `/v1/decks/{deck_id}/publish` | Owner makes a deck private; keeps explicit shares; returns the deck |
 | POST | `/v1/decks/{deck_id}/copies` | Save an accessible deck as a private copy: `{"request_id":"<new UUID>","name":"Optional name"}` |
 | GET | `/v1/decks/{deck_id}` | Read a deck as its owner, an explicit shared friend, or a signed-in public reader |
+| GET | `/v1/decks/public` | List public decks in newest-update order, with current owner profile display names |
 | GET | `/v1/decks/{deck_id}/cards` | Read cards with the same access check; `limit` and `offset` supported |
 
 Usernames are trimmed, lowercased, unique, and 3–24 ASCII letters, digits, or underscores. Display names are trimmed and 1–80 characters. A profile must exist before performing friend actions or looking up users. Profile responses contain only `id`, `username`, `display_name`, `created_at`, and `updated_at`; emails, tokens, and Firebase UIDs are not returned.
@@ -105,7 +106,7 @@ Sharing leaves `visibility` as `private` or `public`, leaves the owner unchanged
 
 Grants live in `decks/{deckId}/shares/{recipientFirebaseUid}`. Each records the owner UID, recipient public UUID, social namespace, relationship pair ID, current friend-request ID, participant hashes, and creation timestamp. Rules look up the grant and the accepted relationship; clients cannot read or write grant documents directly. The API grants within its configured social namespace, and reads evaluate the namespace recorded in the grant, just as the rules do. Firestore does not automatically delete subcollections when a deck is deleted, so deck IDs must not be reused for unrelated decks. A grant is also bound to its owner UID, preventing it from authorizing a different owner who recreates that ID.
 
-API deck/card responses preserve the existing camelCase fields and add `deckId` / `cardId` from the document IDs. Firestore `updatedAt` is returned as an ISO timestamp over HTTP. Android opens shared private decks by a pasted deck code; the original owner/public catalogue queries remain unchanged. A shared-deck inbox and notifications are not included yet.
+API deck/card responses preserve the existing camelCase fields and add `deckId` / `cardId` from the document IDs. Firestore `updatedAt` and optional `createdAt` are returned as ISO timestamps over HTTP. Deck detail and public catalogue reads add optional `ownerDisplayName`, resolved from the current social profile. The catalogue resolves each distinct owner once, omits legacy creator emails, and excludes decks owned by deleting accounts; it never includes private decks, including the caller's own or shared decks. Android opens shared private decks by a pasted deck code and loads Discover through `/v1/decks/public`. A shared-deck inbox and notifications are not included yet.
 
 ## Publish and Save-a-copy contract
 

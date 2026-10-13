@@ -178,6 +178,10 @@ def create_app(settings: Settings | None = None, verifier: TokenVerifier | None 
         decks.revoke_share(user.uid, str(deck_id), str(recipient_id))
         return Response(status_code=204)
 
+    @app.get("/v1/decks/public", response_model=list[Deck], tags=["Decks"])
+    def list_public_decks(user: CurrentUser):
+        return decks.list_public_decks(user.uid)
+
     @app.get("/v1/decks/{deck_id}", response_model=Deck, tags=["Decks"])
     def get_deck(deck_id: UUID, user: CurrentUser):
         return decks.get_deck(user.uid, str(deck_id))

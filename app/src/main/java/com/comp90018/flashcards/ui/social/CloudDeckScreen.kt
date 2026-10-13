@@ -155,7 +155,7 @@ private fun CloudDeckHeader(
             },
         )
         deck.copiedFrom?.let { source ->
-            TextButton(onClick = { onOpenSource(source.deckId) }) { Text("Saved copy · View source deck") }
+            TextButton(onClick = { onOpenSource(source.deckId) }) { Text("View source deck") }
         }
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -514,7 +515,7 @@ private fun DeckHeaderSection(
                 onClick = { onOpenSource(source.deckId) },
                 contentPadding = PaddingValues(0.dp),
             ) {
-                Text("Saved copy · View source deck")
+                Text("View source deck")
             }
         }
 
@@ -563,9 +564,10 @@ private fun DeckTitleRow(
 // public or private, card count and author on one line
 @Composable
 private fun DeckInfoRow(uiState: DeckSummaryUiState) {
-    Row(
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(
             text = if (uiState.visibility == "public") "Public" else "Private",
@@ -577,9 +579,9 @@ private fun DeckInfoRow(uiState: DeckSummaryUiState) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        uiState.authorEmail?.takeIf { it.isNotBlank() }?.let { email ->
+        uiState.creatorDisplayName?.takeIf { it.isNotBlank() }?.let { name ->
             Text(
-                text = "· $email",
+                text = "· Created by $name",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

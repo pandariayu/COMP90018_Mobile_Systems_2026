@@ -2,6 +2,7 @@ package com.comp90018.flashcards.ui.deck
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import com.comp90018.flashcards.data.account.AccountRepository
 import com.comp90018.flashcards.data.local.dao.DeckDao
 import com.comp90018.flashcards.data.local.entity.DeckEntity
 import com.comp90018.flashcards.data.social.CommunityDecks
@@ -32,7 +33,7 @@ data class DeckSummaryUiState(
     val cards: List<CardUiModel> = emptyList(),
     val isOwned: Boolean = true,
     val visibility: String = "private",
-    val authorEmail: String? = null,
+    val creatorDisplayName: String? = null,
     val copiedFrom: DeckAttribution? = null,
     val savedCopyId: String? = null,
     val pendingCopy: Boolean = false,
@@ -53,6 +54,7 @@ class DeckSummaryViewModel
         private val copies: DeckCopies,
         private val friendsRepository: FriendsRepository,
         private val localDeckDao: DeckDao,
+        private val accounts: AccountRepository,
         private val savedStateHandle: SavedStateHandle,
         session: SocialSession,
     ) : SocialViewModel(session) {
@@ -84,10 +86,12 @@ class DeckSummaryViewModel
         // the player's own deck, read from the local database and topped up with the cloud details
         private suspend fun CoroutineScope.loadOwnedDeck(owned: DeckEntity) {
             currentLocalDeck = owned
+            val creatorDisplayName = accounts.cachedProfile(owned.ownerId)?.displayName
             state.update {
                 it.copy(
                     deckName = owned.name,
                     deckDescription = owned.description,
+                    creatorDisplayName = creatorDisplayName,
                     isOwned = true,
                     isLoading = false,
                 )
@@ -113,6 +117,7 @@ class DeckSummaryViewModel
                     it.copy(
                         visibility = cloud.visibility,
                         copiedFrom = cloud.copiedFrom,
+                        creatorDisplayName = cloud.ownerDisplayName ?: it.creatorDisplayName,
                     )
                 }
             }
@@ -144,6 +149,7 @@ class DeckSummaryViewModel
                         cardCount = remoteDeck.cardCount,
                         visibility = remoteDeck.visibility,
                         copiedFrom = remoteDeck.copiedFrom,
+                        creatorDisplayName = remoteDeck.ownerDisplayName,
                         cards = remoteCards,
                         moreCards = remoteCards.size == 50,
                         isLoading = false,

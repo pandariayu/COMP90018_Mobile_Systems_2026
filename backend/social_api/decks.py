@@ -2,6 +2,7 @@ import json
 from datetime import UTC, datetime
 from uuid import uuid4
 
+from google.cloud.firestore_v1 import FieldFilter, Query
 from pydantic import ValidationError
 
 from social_api.database import Database
@@ -175,9 +176,49 @@ class DeckService:
     def get_deck(self, uid: str, deck_id: str):
         def read(transaction):
             deck = self._readable_deck(self.decks.document(deck_id), uid, transaction)
-            return {**deck, "deckId": deck_id}
+            return {
+                **deck,
+                "deckId": deck_id,
+                "ownerDisplayName": self._owner_display_name(deck["ownerId"], transaction),
+            }
 
         return self.database.run(read, read_only=True, uid=uid)
+
+    def list_public_decks(self, uid: str):
+        def read(transaction):
+            query = self.decks.where(filter=FieldFilter("visibility", "==", "public")).order_by(
+                "updatedAt", direction=Query.DESCENDING
+            )
+            creators = {}
+            deleting = set()
+            rows = []
+            for document in query.stream(transaction=transaction):
+                deck = document.to_dict()
+                owner_id = deck["ownerId"]
+                if owner_id not in creators and owner_id not in deleting:
+                    if (
+                        self.database.deletions.document(owner_id)
+                        .get(transaction=transaction)
+                        .exists
+                    ):
+                        deleting.add(owner_id)
+                    else:
+                        creators[owner_id] = self._owner_display_name(owner_id, transaction)
+                if owner_id not in deleting:
+                    rows.append(
+                        {**deck, "deckId": document.id, "ownerDisplayName": creators[owner_id]}
+                    )
+            return rows
+
+        return self.database.run(read, read_only=True, uid=uid)
+
+    def _owner_display_name(self, owner_id: str, transaction):
+        owner = (
+            self.database.users.document(self.database.subject_hash(owner_id))
+            .get(transaction=transaction)
+            .to_dict()
+        )
+        return owner.get("display_name") if owner else None
 
     def list_cards(self, uid: str, deck_id: str, limit: int, offset: int):
         deck_ref = self.decks.document(deck_id)

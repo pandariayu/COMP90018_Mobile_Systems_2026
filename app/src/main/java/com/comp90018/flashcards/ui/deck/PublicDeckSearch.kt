@@ -4,7 +4,7 @@ import com.comp90018.flashcards.data.remote.RemoteDeck
 
 /**
  * Public catalogue search. A blank query keeps every deck. Otherwise the deck name or creator
- * email must contain the text, ignoring case.
+ * display name must contain the text, ignoring case.
  */
 internal fun List<RemoteDeck>.matchingPublicSearch(query: String): List<RemoteDeck> {
     val needle = query.trim()
@@ -13,7 +13,7 @@ internal fun List<RemoteDeck>.matchingPublicSearch(query: String): List<RemoteDe
     } else {
         filter { deck ->
             deck.name.contains(needle, ignoreCase = true) ||
-                deck.authorEmail.orEmpty().contains(needle, ignoreCase = true)
+                deck.ownerDisplayName.orEmpty().contains(needle, ignoreCase = true)
         }
     }
 }
