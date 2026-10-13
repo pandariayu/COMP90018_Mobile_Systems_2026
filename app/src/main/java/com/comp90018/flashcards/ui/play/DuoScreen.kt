@@ -169,13 +169,12 @@ internal fun FrontContent(
 internal fun BackContent(
     uiState: DuoUiState,
     onGesture: (TiltGesture) -> Unit,
-    viewModel: DuoViewModel = hiltViewModel(),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val currentOnGesture by rememberUpdatedState(onGesture)
 
-    DisposableEffect(viewModel) {
+    // listen for the tilt while the back is showing, and stop when it leaves the screen
+    DisposableEffect(Unit) {
         val detector = DuoFlipDetector(context) { gesture -> currentOnGesture(gesture) }
         detector.start()
         onDispose {
