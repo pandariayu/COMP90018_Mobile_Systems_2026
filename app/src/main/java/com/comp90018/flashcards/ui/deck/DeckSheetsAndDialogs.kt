@@ -27,12 +27,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.ui.graphics.Color
 import com.comp90018.flashcards.R
 import com.comp90018.flashcards.data.social.SocialFriend
 import com.comp90018.flashcards.ui.social.DeckCode
 import com.comp90018.flashcards.ui.social.ProfileLabel
 import com.comp90018.flashcards.ui.social.SocialStatus
 import com.comp90018.flashcards.ui.social.SocialTaskState
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,26 +53,40 @@ fun UnifiedDeckShareSheet(
             contentPadding = PaddingValues(start = 24.dp, end = 24.dp, bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            item {
-                Text("Share with friends", style = MaterialTheme.typography.headlineSmall)
-                Text("Give a friend read access, then send them the deck code. They can open it in Community.")
-                SocialStatus(task)
-                DeckCode(deckId)
-                TextButton(onClick = onRefresh, enabled = !task.busy) { Text("Refresh friends") }
-                TextButton(onClick = onFriends, enabled = !task.busy) { Text("Manage friends and profile") }
-            }
             if (friends?.isEmpty() == true) {
-                item { Text("No friends yet. Add and accept a friend request first.") }
+                item {
+                    Text("No friends yet. Add and accept a friend request first.")
+                    TextButton(onClick = onFriends, enabled = !task.busy) { Text("Manage friends") }
+                }
+            }
+            else item {
+                Text("Share with friends", style = MaterialTheme.typography.headlineSmall)
+                // Smaller than the buttons below, with extra vertical breathing room
+                Text(
+                    "Let a friend copy your deck by giving them access, then send them the deck code. " +
+                        "Deck codes can be entered in the 'Discover' tab.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+                SocialStatus(task)
+                // Side by side, with larger text than the description
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DeckCode(deckId)
+                    TextButton(onClick = onFriends, enabled = !task.busy) {
+                        Text("Manage friends", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
             }
             items(friends.orEmpty(), key = { it.user.id }) { friend ->
                 OutlinedCard(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp)) {
+                    // Less vertical padding; the buttons already have a 48dp touch target
+                    Column(Modifier.padding(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 0.dp)) {
                         ProfileLabel(friend.user)
-                        Row {
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             TextButton(
                                 onClick = { onShare(friend.user.id, false) },
                                 enabled = !task.busy,
-                            ) { Text("Share") }
+                            ) { Text("Give access") }
                             TextButton(
                                 onClick = { onShare(friend.user.id, true) },
                                 enabled = !task.busy,
@@ -91,18 +108,18 @@ fun DeckOptionsBottomSheet(
     onEditVisibility: () -> Unit,
     onDeleteDeck: () -> Unit,
 ) {
+    val transparentItem = ListItemDefaults.colors(containerColor = Color.Transparent)
+
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier.padding(bottom = 32.dp),
-        ) {
+        Column(modifier = Modifier.padding(bottom = 32.dp)) {
             ListItem(
                 headlineContent = { Text("Edit Deck Info") },
                 leadingContent = { Icon(Icons.Default.Edit, contentDescription = null) },
-                modifier =
-                    Modifier.fillMaxWidth().clickable {
-                        onDismiss()
-                        onEditDeckInfo()
-                    },
+                colors = transparentItem,
+                modifier = Modifier.fillMaxWidth().clickable {
+                    onDismiss()
+                    onEditDeckInfo()
+                },
             )
             ListItem(
                 headlineContent = {
@@ -115,11 +132,11 @@ fun DeckOptionsBottomSheet(
                         Icon(painterResource(R.drawable.ic_globe), contentDescription = null)
                     }
                 },
-                modifier =
-                    Modifier.fillMaxWidth().clickable {
-                        onDismiss()
-                        onEditVisibility()
-                    },
+                colors = transparentItem,
+                modifier = Modifier.fillMaxWidth().clickable {
+                    onDismiss()
+                    onEditVisibility()
+                },
             )
             ListItem(
                 headlineContent = {
@@ -132,11 +149,11 @@ fun DeckOptionsBottomSheet(
                         tint = MaterialTheme.colorScheme.error,
                     )
                 },
-                modifier =
-                    Modifier.fillMaxWidth().clickable {
-                        onDismiss()
-                        onDeleteDeck()
-                    },
+                colors = transparentItem,
+                modifier = Modifier.fillMaxWidth().clickable {
+                    onDismiss()
+                    onDeleteDeck()
+                },
             )
         }
     }

@@ -41,7 +41,7 @@ import com.comp90018.flashcards.ui.connection.DebugConnectionButtons
 
 // every team container is this tall, whatever is inside, so the lobby does not jump around
 private val TEAM_SLOT_HEIGHT = 150.dp
-private const val TINT_ALPHA = 0.1f
+private const val TINT_ALPHA = 0.18f
 
 /** Top team blue, bottom team red. A see-through wash over the surface, so it suits light and dark. */
 enum class TeamTint(

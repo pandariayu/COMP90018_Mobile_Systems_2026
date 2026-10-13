@@ -15,6 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.comp90018.flashcards.data.social.SocialCard
@@ -234,5 +235,10 @@ internal fun DeckCode(deckId: String) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("Deck code", deckId))
         copied = true
-    }) { Text(if (copied) "Deck code copied" else "Copy deck code") }
+    }) {
+        Text(
+            text = if (copied) "Deck code copied" else "Copy deck code",
+            style = MaterialTheme.typography.titleMedium,
+        )
+    }
 }

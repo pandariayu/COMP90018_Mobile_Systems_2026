@@ -549,10 +549,10 @@ private fun DeckTitleRow(
         )
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onShareClick) {
-                Icon(Icons.Default.Share, contentDescription = "Share")
-            }
             if (uiState.isOwned) {
+                IconButton(onClick = onShareClick) {
+                    Icon(Icons.Default.Share, contentDescription = "Share")
+                }
                 IconButton(onClick = onOptionsClick) {
                     Icon(Icons.Default.MoreVert, contentDescription = "Options")
                 }
