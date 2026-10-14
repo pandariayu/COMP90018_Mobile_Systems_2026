@@ -37,7 +37,9 @@ class FirebaseTokenVerifier:
                 "Configure Firebase Admin Application Default Credentials first."
             ) from error
         self._app = firebase_admin.initialize_app(
-            credential=credential, options={"projectId": project_id}, name=f"social-{uuid4()}"
+            credential=credential,
+            options={"projectId": project_id, "httpTimeout": 10},
+            name=f"social-{uuid4()}",
         )
 
     def verify(self, token: str) -> Identity:
@@ -64,3 +66,7 @@ class FirebaseTokenVerifier:
         import firebase_admin
 
         firebase_admin.delete_app(self._app)
+
+    @property
+    def firebase_app(self):
+        return self._app

@@ -84,7 +84,7 @@ class SocialService:
 
         return self.database.run(lookup, read_only=True, uid=uid)
 
-    def send_request(self, uid: str, recipient_id: str):
+    def send_request(self, uid: str, recipient_id: str, on_created=None):
         sender = self.database.subject_hash(uid)
 
         def send(transaction):
@@ -101,7 +101,9 @@ class SocialService:
                     raise ApiError(409, "already_friends", "You are already friends.")
                 if existing["status"] == "pending":
                     if existing["sender_hash"] == sender:
-                        return self._request_view(existing, sender_profile, recipient_profile)
+                        return self._request_view(
+                            existing, sender_profile, recipient_profile
+                        ), False
                     raise ApiError(
                         409, "incoming_request_exists", "Respond to the incoming request first."
                     )
@@ -120,9 +122,12 @@ class SocialService:
                 transaction.delete(self.database.request_ids.document(existing["id"]))
             transaction.create(self.database.request_ids.document(row["id"]), {"pair_id": pair_id})
             transaction.set(ref, row)
-            return self._request_view(row, sender_profile, recipient_profile)
+            return self._request_view(row, sender_profile, recipient_profile), True
 
-        return self.database.run(send, uid=uid)
+        result, created = self.database.run(send, uid=uid)
+        if created and on_created is not None:
+            on_created(result)
+        return result
 
     def list_requests(self, uid: str, direction: str, status: str, limit: int, offset: int):
         subject = self.database.subject_hash(uid)

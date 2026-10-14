@@ -3,6 +3,7 @@ package com.comp90018.flashcards
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.comp90018.flashcards.data.notifications.FriendNotificationCoordinator
 import com.comp90018.flashcards.data.sync.DeckSyncCoordinator
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
@@ -15,6 +16,8 @@ class FlashcardApplication :
 
     @Inject lateinit var deckSyncCoordinator: DeckSyncCoordinator
 
+    @Inject lateinit var friendNotificationCoordinator: FriendNotificationCoordinator
+
     override val workManagerConfiguration: Configuration
         get() =
             Configuration
@@ -25,5 +28,6 @@ class FlashcardApplication :
     override fun onCreate() {
         super.onCreate()
         deckSyncCoordinator.start()
+        friendNotificationCoordinator.start()
     }
 }

@@ -25,9 +25,16 @@ from social_api.models import (
     FriendRequest,
     FriendRequestAction,
     FriendRequestInput,
+    NotificationDeviceInput,
     Profile,
     ProfileInput,
     RequestStatus,
+)
+from social_api.notifications import (
+    DisabledPushSender,
+    FirebasePushSender,
+    NotificationService,
+    PushSender,
 )
 from social_api.service import SocialService
 
@@ -48,12 +55,17 @@ def authenticated_user(
 CurrentUser = Annotated[Identity, Depends(authenticated_user)]
 
 
-def create_app(settings: Settings | None = None, verifier: TokenVerifier | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    verifier: TokenVerifier | None = None,
+    push_sender: PushSender | None = None,
+) -> FastAPI:
     settings = settings or Settings.from_environment()
     database = Database(settings)
     service = SocialService(database)
     decks = DeckService(database)
     accounts = AccountService(database)
+    notifications = NotificationService(database)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -62,6 +74,11 @@ def create_app(settings: Settings | None = None, verifier: TokenVerifier | None 
             active_verifier = verifier or FirebaseTokenVerifier(settings.firebase_project_id)
             database.initialize()
             app.state.verifier = active_verifier
+            app.state.push_sender = push_sender or (
+                FirebasePushSender(active_verifier.firebase_app)
+                if isinstance(active_verifier, FirebaseTokenVerifier)
+                else DisabledPushSender()
+            )
             yield
         finally:
             database.close()
@@ -70,7 +87,7 @@ def create_app(settings: Settings | None = None, verifier: TokenVerifier | None 
 
     app = FastAPI(
         title="Clashcards Social API",
-        version="0.3.0",
+        version="0.4.0",
         description="Firebase-authenticated profiles, friends, sharing, publishing, and copies.",
         lifespan=lifespan,
         responses={
@@ -142,7 +159,23 @@ def create_app(settings: Settings | None = None, verifier: TokenVerifier | None 
 
     @app.post("/v1/friend-requests", response_model=FriendRequest, tags=["Friends"])
     def send_request(body: FriendRequestInput, user: CurrentUser):
-        return service.send_request(user.uid, str(body.recipient_id))
+        return service.send_request(
+            user.uid,
+            str(body.recipient_id),
+            # Keep delivery inside the HTTP request so request-based Cloud Run CPU
+            # stays available. Push failure never rolls back the request itself.
+            on_created=lambda request: notifications.friend_request(request, app.state.push_sender),
+        )
+
+    @app.put("/v1/notification-devices/{device_id}", status_code=204, tags=["Notifications"])
+    def register_device(device_id: UUID, body: NotificationDeviceInput, user: CurrentUser):
+        notifications.register(user.uid, str(device_id), body.token)
+        return Response(status_code=204)
+
+    @app.delete("/v1/notification-devices/{device_id}", status_code=204, tags=["Notifications"])
+    def unregister_device(device_id: UUID, user: CurrentUser):
+        notifications.unregister(user.uid, str(device_id))
+        return Response(status_code=204)
 
     @app.get("/v1/friend-requests", response_model=list[FriendRequest], tags=["Friends"])
     def list_requests(

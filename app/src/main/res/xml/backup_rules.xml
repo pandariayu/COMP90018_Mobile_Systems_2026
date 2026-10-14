@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude domain="sharedpref" path="notification_device.xml" />
+    <exclude domain="sharedpref" path="friend_notifications.xml" />
+    <exclude domain="sharedpref" path="notification_permission.xml" />
+</full-backup-content>

@@ -42,6 +42,12 @@ class FriendRequestAction(BaseModel):
     action: RequestAction
 
 
+class NotificationDeviceInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    token: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4096)]
+
+
 class FriendRequest(BaseModel):
     id: UUID
     sender: Profile

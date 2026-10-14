@@ -137,3 +137,22 @@ This Android update adds mandatory profile onboarding and the dashboard Account 
 4. To verify deletion end to end, use a disposable test account and confirm fresh password/Google sign-in in Account. The API cleans application data; the Android Firebase client deletes the login afterward. Verify that its owned decks/profile/relationships are removed and another user's previously saved copy remains. This is a destructive live check; automated tests only use the emulator and local test databases.
 
 Interrupted cleanup keeps a deletion marker and the Android recovery screen offers a safe retry. Keep completed markers: removing them could let stale clients recreate data. Deploying only the Android app against the old API disables successful deletion with an update-required error; it does not remove the Firebase login prematurely. No live deployment or real account deletion is performed by the checks in this repository.
+
+## Updating an existing service for friend request notifications
+
+API `0.4.0` registers Android installations and sends FCM data messages when new friend requests commit. Keep the existing Melbourne service, database, namespace and identity secret.
+
+1. Identify the current runtime service account and grant messaging access. Run with project administrator access:
+
+```powershell
+$projectId = 'com-comp90018-flashcards'
+$runtimeAccount = (gcloud run services describe comp90018-mobile-systems-2026 --project $projectId --region australia-southeast2 --format 'value(spec.template.spec.serviceAccountName)').Trim()
+gcloud services enable fcm.googleapis.com --project $projectId
+gcloud projects add-iam-policy-binding $projectId --member "serviceAccount:$runtimeAccount" --role roles/firebasecloudmessaging.admin
+```
+
+2. Redeploy the backend with its existing source deployment configuration or repository-connected build trigger. There are no new secrets, Firestore indexes or rules for this feature; existing rules already protect the device registry.
+3. Verify `/openapi.json` reports `0.4.0` and includes `PUT`/`DELETE /v1/notification-devices/{device_id}`. Install the updated Android APK, sign in and allow notifications. Background delivery needs successful registration against this backend.
+4. Follow the [two-device notification demo](../docs/friend-request-notifications.md#two-device-demonstration), checking both buttons with the receiving app in the background and confirming the resulting friendship/request state.
+
+The Cloud Run runtime identity supplies Admin SDK credentials; no service-account key belongs in the APK. [Firebase documents the FCM API Admin role](https://firebase.google.com/docs/cloud-messaging/send/admin-sdk) for sending messages. Data-only payloads allow Android to add both actions. Push failures are logged without tokens/private payloads and preserve the pending request for foreground recovery. The local checks do not enable APIs, change IAM or deploy the live service.
