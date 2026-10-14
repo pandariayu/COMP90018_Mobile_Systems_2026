@@ -12,6 +12,11 @@ import java.net.URLEncoder
 import javax.inject.Inject
 import javax.inject.Singleton
 
+data class IncomingFriendRequests(
+    val requests: List<SocialRequest>,
+    val readStartedAt: Long,
+)
+
 @Singleton
 class FriendsRepository
     @Inject
@@ -19,11 +24,16 @@ class FriendsRepository
         private val api: SocialApi,
     ) {
         private val incomingIds = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
+        private val incomingSnapshots = MutableStateFlow<Map<String, IncomingFriendRequests>>(emptyMap())
 
         // Serialize reads and responses so an older poll cannot restore a resolved badge.
         private val requestMutex = Mutex()
 
         fun incomingRequestCount(uid: String) = incomingIds.map { it[uid].orEmpty().size }.distinctUntilChanged()
+
+        fun incomingRequests(uid: String) = incomingSnapshots.map { it[uid] }.distinctUntilChanged()
+
+        fun currentIncoming(uid: String): IncomingFriendRequests? = incomingSnapshots.value[uid]
 
         suspend fun profile(uid: String): SocialProfile? =
             try {
@@ -79,8 +89,10 @@ class FriendsRepository
             val path = "/v1/friend-requests?direction=$direction&status=$status&"
             return if (incoming && status == "pending") {
                 requestMutex.withLock {
+                    val readStartedAt = System.currentTimeMillis()
                     val requests = pages<SocialRequest>(uid, path)
                     incomingIds.update { it + (uid to requests.map { request -> request.id }.toSet()) }
+                    incomingSnapshots.update { it + (uid to IncomingFriendRequests(requests, readStartedAt)) }
                     requests
                 }
             } else {
@@ -101,6 +113,15 @@ class FriendsRepository
                     buildJsonObject { put("action", action) },
                 )
                 incomingIds.update { it + (uid to (it[uid].orEmpty() - requestId)) }
+                incomingSnapshots.update { snapshots ->
+                    val snapshot = snapshots[uid]
+                    if (snapshot == null) {
+                        snapshots
+                    } else {
+                        snapshots +
+                            (uid to snapshot.copy(requests = snapshot.requests.filterNot { it.id == requestId }))
+                    }
+                }
             }
         }
 

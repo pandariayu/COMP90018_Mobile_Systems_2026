@@ -1,5 +1,6 @@
 package com.comp90018.flashcards
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,11 +11,13 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -26,6 +29,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.comp90018.flashcards.data.notifications.FriendNotificationCoordinator
+import com.comp90018.flashcards.data.notifications.FriendRequestNotifications
 import com.comp90018.flashcards.ui.account.AccountScreen
 import com.comp90018.flashcards.ui.account.OnboardingScreen
 import com.comp90018.flashcards.ui.account.ProfileConnectionScreen
@@ -47,16 +52,24 @@ import com.comp90018.flashcards.ui.play.ChooseTimerScreen
 import com.comp90018.flashcards.ui.play.DuoScreen
 import com.comp90018.flashcards.ui.play.TeamGameScreen
 import com.comp90018.flashcards.ui.social.DiscoverScreen
+import com.comp90018.flashcards.ui.social.FriendNotificationPermission
 import com.comp90018.flashcards.ui.social.FriendRequestBadgeViewModel
 import com.comp90018.flashcards.ui.social.FriendsScreen
 import com.comp90018.flashcards.ui.study.StudyScreen
 import com.comp90018.flashcards.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.MutableStateFlow
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var friendNotifications: FriendNotificationCoordinator
+
+    private val notificationAccount = MutableStateFlow<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        readNotificationIntent(intent)
         enableEdgeToEdge()
         setContent {
             AppTheme {
@@ -64,15 +77,33 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    FlashcardApp()
+                    val account by notificationAccount.collectAsState()
+                    FlashcardApp(account, { notificationAccount.value = null }, friendNotifications::refresh)
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        readNotificationIntent(intent)
+    }
+
+    private fun readNotificationIntent(intent: Intent) {
+        if (intent.action == FriendRequestNotifications.OPEN_FRIENDS) {
+            notificationAccount.value = intent.getStringExtra(FriendRequestNotifications.ACCOUNT_UID)
         }
     }
 }
 
 @Composable
-private fun FlashcardApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
+private fun FlashcardApp(
+    notificationAccount: String?,
+    onNotificationOpen: () -> Unit,
+    onNotificationPermissionGrant: () -> Unit,
+    sessionViewModel: SessionViewModel = hiltViewModel(),
+) {
     val session by sessionViewModel.session.collectAsState()
     key(session.user?.uid, session.stage) {
         when (session.stage) {
@@ -100,10 +131,15 @@ private fun FlashcardApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
                     sessionViewModel::signOut,
                 )
             SessionStage.READY ->
-                FlashcardNavHost(
-                    navController = rememberNavController(),
-                    onSignOut = sessionViewModel::signOut,
-                )
+                {
+                    FriendNotificationPermission(onNotificationPermissionGrant)
+                    FlashcardNavHost(
+                        navController = rememberNavController(),
+                        onSignOut = sessionViewModel::signOut,
+                        openFriends = notificationAccount != null && notificationAccount == session.user?.uid,
+                        onNotificationOpen = onNotificationOpen,
+                    )
+                }
         }
     }
 }
@@ -112,9 +148,18 @@ private fun FlashcardApp(sessionViewModel: SessionViewModel = hiltViewModel()) {
 private fun FlashcardNavHost(
     navController: NavHostController,
     onSignOut: () -> Unit,
+    openFriends: Boolean = false,
+    onNotificationOpen: () -> Unit = {},
     badgeViewModel: FriendRequestBadgeViewModel = hiltViewModel(),
 ) {
     val incomingCount = badgeViewModel.incomingCount.collectAsStateWithLifecycle()
+    val notificationOpen by rememberUpdatedState(onNotificationOpen)
+    LaunchedEffect(openFriends) {
+        if (openFriends) {
+            navController.navigate("friends") { launchSingleTop = true }
+            notificationOpen()
+        }
+    }
     NavHost(navController = navController, startDestination = "home") {
         composable("account") {
             AccountScreen(onBack = { navController.popBackStack() }, onSignOut = onSignOut)

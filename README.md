@@ -46,6 +46,10 @@ The [Python social API](backend/README.md) uses the same Firebase Auth project a
 
 The root Firebase configuration includes five composite indexes (two deck, three social), a share-recipient collection-group field index, and the combined rules. Run `npm run test:emulator` from `backend` after following its setup instructions to test both the API and direct-client access rules. Open **Community** from My Decks for public decks and friends, or **Account** to manage your profile; your deck's **⋮** menu offers **Publish / Unpublish** and **Share with friends**. Public catalogue rows and previews save copies through the same API workflow. See [Android community setup and usage](docs/android-community.md). API and rules updates need separate deployment; see the [Cloud Run guide](backend/DEPLOYMENT.md).
 
+## Friend request notifications
+
+New friend requests support **Accept** and **Decline** directly in Android notifications. Foreground refresh recovers pending requests; background delivery uses FCM and requires social API 0.4.0 plus messaging permissions for the runtime account. See [setup and the two-device demo](docs/friend-request-notifications.md).
+
 ## Building & running
 
 Duo and clash rounds support automatic start/pause from the forehead pose, with

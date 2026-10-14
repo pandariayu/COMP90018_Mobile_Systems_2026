@@ -1,5 +1,6 @@
 package com.comp90018.flashcards.ui.social
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
@@ -28,13 +29,16 @@ class CommunityIntegrationUiTest {
         var opened: String? = null
         compose.setContent {
             MaterialTheme {
-                PublicDeckRow(deck, true, copies.value, true, { preview = it }, { saved = it }, { opened = it })
+                Column {
+                    PublicDeckRow(deck, true, 0, 1, { preview = it })
+                    CopyDeckAction(copies.value.saved[deck.deckId], true, { saved = deck.deckId }, { opened = it })
+                }
             }
         }
         compose.onNodeWithText("12 cards · Yours").assertIsDisplayed()
-        compose.onNodeWithText("Preview deck").performClick()
+        compose.onNodeWithText("Vocabulary").performClick()
         assertEquals("source", preview)
-        compose.onNodeWithText("Save a copy").performClick()
+        compose.onNodeWithText("Save a copy to My Decks").performClick()
         assertEquals("source", saved)
         compose.runOnIdle { copies.value = CatalogueCopies(saved = mapOf("source" to "server-copy")) }
         compose.onNodeWithText("Open my saved copy").performClick()
@@ -45,10 +49,10 @@ class CommunityIntegrationUiTest {
     fun catalogueDisablesOtherCopiesDuringAnActiveSave() {
         compose.setContent {
             MaterialTheme {
-                PublicDeckRow(deck, false, CatalogueCopies(saving = "another-deck"), false, {}, {}, {})
+                CopyDeckAction(null, false, {}, {})
             }
         }
-        compose.onNodeWithText("Save a copy").assertIsNotEnabled()
+        compose.onNodeWithText("Save a copy to My Decks").assertIsNotEnabled()
     }
 
     @Test
@@ -56,7 +60,7 @@ class CommunityIntegrationUiTest {
         var retried: String? = null
         compose.setContent {
             MaterialTheme {
-                PublicDeckRow(deck, false, CatalogueCopies(pending = setOf("source")), true, {}, { retried = it }, {})
+                CopyDeckAction(null, true, { retried = deck.deckId }, {}, pending = true)
             }
         }
         compose.onNodeWithText("Retry saving copy").performClick()
@@ -78,11 +82,11 @@ class CommunityIntegrationUiTest {
                 }
             }
         }
-        compose.onNodeWithText("Unpublish").performClick()
+        compose.onNodeWithText("Make Deck Private").performClick()
         assertEquals(0, writes)
         compose.onNodeWithText("Cancel").performClick()
         assertEquals(0, writes)
-        compose.onNodeWithText("Unpublish").performClick()
+        compose.onNodeWithText("Make Deck Private").performClick()
         compose.onNodeWithText("Make private").performClick()
         assertEquals(1, writes)
     }

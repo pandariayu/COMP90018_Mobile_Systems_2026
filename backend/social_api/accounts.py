@@ -48,6 +48,7 @@ class AccountService:
             self._delete_shares(saved["profile_id"])
             self._delete_relationships(subject)
             self._delete_copy_receipts(subject)
+            self._delete_notification_devices(subject)
             self._finish_profile(subject, marker)
 
     def _delete_decks(self, uid):
@@ -81,6 +82,13 @@ class AccountService:
             self.database.copy_requests.order_by("__name__")
             .start_at({"__name__": self.database.copy_requests.document(prefix)})
             .end_before({"__name__": self.database.copy_requests.document(prefix + "\uf8ff")})
+        )
+        for document in query.stream():
+            document.reference.delete()
+
+    def _delete_notification_devices(self, subject):
+        query = self.database.notification_devices.where(
+            filter=FieldFilter("subject_hash", "==", subject)
         )
         for document in query.stream():
             document.reference.delete()

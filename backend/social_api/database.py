@@ -34,6 +34,7 @@ class Database:
         self.relationships = self.root.collection("relationships")
         self.request_ids = self.root.collection("request_ids")
         self.copy_requests = self.root.collection("copy_requests")
+        self.notification_devices = self.root.collection("notification_devices")
         self.config = self.root.collection("metadata").document("config")
         self.deletions = self.client.collection("account_deletions")
 

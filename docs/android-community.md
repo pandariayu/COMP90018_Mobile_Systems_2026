@@ -51,7 +51,7 @@ Source attribution stays on the cloud deck and is displayed as **View source dec
 
 The deck details header shows **Created by** followed by the deck owner's profile display name. Owned decks use the cached profile offline; cloud deck reads resolve the current owner's profile through the API's optional `ownerDisplayName` field. Saved copies show their own owner's name, with the original deck linked through **View source deck**. Profiles without a display name omit the creator label.
 
-The backend's copy limit remains 400 cards / 4 MiB. A shared-deck inbox, notifications, portable image uploads, and live catalogue subscriptions are not implemented. Private decks are opened using their shared code; public decks are browsable. Catalogue refresh and social actions require network access, while imported copies can be studied locally.
+The backend's copy limit remains 400 cards / 4 MiB. A shared-deck inbox, portable image uploads, and live catalogue subscriptions are not implemented. Friend requests support actionable Android notifications; see [notification setup and demo](friend-request-notifications.md). Private decks are opened using their shared code; public decks are browsable. Catalogue refresh and social actions require network access, while imported copies can be studied locally.
 
 ## Verification
 

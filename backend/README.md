@@ -240,7 +240,7 @@ Deletion tests cover recent authentication, scoped cleanup, retention of others'
 
 ## Further integration work
 
-Android profile setup, friend requests, share/revoke, Publish/unpublish, and Save-a-copy are connected. Copies import into Room with new IDs and fresh study state; interrupted copies retain a request UUID for retry. Remaining work includes a shared-deck inbox, notifications, portable image uploads, and a live two-account acceptance test against deployed Firebase rules.
+Android profile setup, friend requests, share/revoke, Publish/unpublish, and Save-a-copy are connected. Copies import into Room with new IDs and fresh study state; interrupted copies retain a request UUID for retry. Friend request notifications use FCM and authenticated device registration in API 0.4.0; see [notification setup and demo](../docs/friend-request-notifications.md). Remaining work includes a shared-deck inbox, portable image uploads, and a live two-account acceptance test against deployed Firebase rules.
 
 The older `discussion1509.md` removes friends; this implementation follows the current request to include them and the supplied Project Plan.
 

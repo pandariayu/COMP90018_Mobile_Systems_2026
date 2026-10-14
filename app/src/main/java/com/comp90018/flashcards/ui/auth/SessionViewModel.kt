@@ -7,6 +7,7 @@ import com.comp90018.flashcards.data.account.AccountRepository
 import com.comp90018.flashcards.data.auth.AuthRepository
 import com.comp90018.flashcards.data.auth.AuthState
 import com.comp90018.flashcards.data.auth.SignedInUser
+import com.comp90018.flashcards.data.notifications.NotificationDeviceRegistration
 import com.comp90018.flashcards.data.social.SocialApiException
 import com.comp90018.flashcards.data.social.SocialProfile
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -36,6 +37,7 @@ class SessionViewModel
     constructor(
         private val auth: AuthRepository,
         accounts: AccountRepository,
+        private val devices: NotificationDeviceRegistration,
     ) : ViewModel() {
         private val coordinator = SessionCoordinator(auth.authState, accounts, viewModelScope)
         val session = coordinator.session
@@ -43,7 +45,22 @@ class SessionViewModel
         fun retry() = coordinator.retry()
 
         fun signOut() {
-            viewModelScope.launch { auth.signOut() }
+            viewModelScope.launch {
+                val uid = auth.currentUid
+                if (uid != null) {
+                    // Signing out remains available offline; delivery also checks the local account.
+                    try {
+                        devices.unregister(uid)
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: java.io.IOException) {
+                        // A stale token cannot show notifications for a signed-out account.
+                    } catch (_: IllegalStateException) {
+                        // The account already changed.
+                    }
+                }
+                auth.signOut()
+            }
         }
     }
 

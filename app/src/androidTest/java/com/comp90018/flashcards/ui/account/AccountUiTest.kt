@@ -4,7 +4,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
@@ -20,13 +22,14 @@ class AccountUiTest {
     fun displayNameCanChangeWithoutChangingUsername() {
         var saved: String? = null
         compose.setContent {
-            MaterialTheme { DisplayNameEditor(SocialProfile("id", "alice", "Alice"), true) { saved = it } }
+            MaterialTheme { ProfileDetails(SocialProfile("id", "alice", "Alice"), true) { saved = it } }
         }
         compose.onNodeWithText("@alice").assertIsDisplayed()
-        compose.onNodeWithText("Display name").performTextReplacement(" ")
-        compose.onNodeWithText("Save display name").assertIsNotEnabled()
-        compose.onNodeWithText("Display name").performTextReplacement(" New name ")
-        compose.onNodeWithText("Save display name").performClick()
+        compose.onNodeWithContentDescription("Edit display name").performClick()
+        compose.onNode(hasSetTextAction()).performTextReplacement(" ")
+        compose.onNodeWithContentDescription("Save display name").assertIsNotEnabled()
+        compose.onNode(hasSetTextAction()).performTextReplacement(" New name ")
+        compose.onNodeWithContentDescription("Save display name").performClick()
         assertEquals("New name", saved)
     }
 
